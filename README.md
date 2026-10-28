@@ -56,7 +56,7 @@ curl -X POST http://localhost:8080/api/transfers \
 
 ## Part 2: send, limit, callback
 
-- `POST /api/transfers/{transferId}/send` starts the partner call. The brief does not say what triggers it, and sending automatically on create would make the Part 1 cancel (S4) impossible, so sending is an explicit step. Only from `REQUESTED`, otherwise 409 (unknown id → 404). It runs synchronously and returns 200 with the transfer: `SENDING` if the partner accepted, `FAILED` (with `failureReason`) if all 3 attempts failed. The body also has `partnerRef` and an `attempts` list (attemptNo, result, attemptedAt) so the retry log is visible in the response; the same rows are in table `partner_attempts` and in the app log.
+- `POST /api/transfers/{transferId}/send` starts the partner call. The brief does not say what triggers it, and sending automatically on create would make the Part 1 cancel (S4) impossible, so sending is an explicit step. Only from `REQUESTED`, otherwise 409 (unknown id → 404). It runs synchronously (about 0.9 s when all 3 attempts fail) and returns 200 with the transfer: `SENDING` if the partner accepted, `FAILED` (with `failureReason`) if all 3 attempts failed. The body also has `partnerRef` and an `attempts` list (attemptNo, result, attemptedAt) so the retry log is visible in the response; the same rows are in table `partner_attempts` and in the app log. Calling `/send` again returns 409, also while the first call is still running (e.g. a client retry after a timeout); read the result with `GET /api/transfers/{transferId}` (no `attempts` there).
 - `POST /api/callbacks/partner` with `{"partnerRef":"P-<transferId>","eventId":"evt_0001","status":"COMPLETED"}` moves `SENDING` → `COMPLETED` and returns 200 with the transfer. Same `eventId` again → 200 with the current transfer, nothing changes. Unknown `partnerRef` → 404. Transfer not in `SENDING` → 409. `status` other than `COMPLETED` or a blank field → 400.
 
 Assumptions:
@@ -66,13 +66,13 @@ Assumptions:
 - A transfer ends in `SENDING` after the partner accepts, never `COMPLETED` by the send itself. If a callback arrives while the retries are still running, the late `FAILED` update does not overwrite `COMPLETED`.
 - Daily limit: 3,000,000 KRW of `sendAmount` per customer per Asia/Seoul calendar day (by the transfer's `createdAt`). `REQUESTED`, `SENDING` and `COMPLETED` count; `CANCELLED` and `FAILED` do not. A transfer that would take the total above the limit → 422 `LIMIT_EXCEEDED`; exactly 3,000,000 is allowed. Creates for the same customer are serialized by a row lock, so two concurrent requests cannot both pass.
 - A retry of an existing `Idempotency-Key` returns the original transfer and skips the limit check.
-- No recovery job: if the app dies between `SENDING` and the partner result, the transfer stays `SENDING`.
+- No recovery job: if the app dies, or `send` fails with an error, after `SENDING` is stored and before the partner accepts, the transfer stays `SENDING` and keeps counting toward the daily limit.
 
 ## AI tools
 
 - Claude Code (Anthropic) was used for this assignment.
 - Claude Opus 5.5 read the brief, proposed the design (the author reviewed it and made the decisions), reviewed outputs, and wrote these documents.
-- Claude Sonnet 5.5 generated the skeleton, the code, the tests and the scenario script under that design; the author reviewed and verified the results.
+- Claude Sonnet 5.5 generated the skeleton, the code (Part 1 and Part 2), the tests, the scenario scripts and the Docker setup under that design; the author reviewed and verified the results.
 
 ## Assumptions
 
@@ -94,6 +94,7 @@ The brief left these open. Each one is what the code does.
 
 ## Not implemented
 
-- DESIGN Q4-Q5 and the S7-S9 results in RESULT.md are not written yet (the code and `scripts/scenarios-part2.sh` are there).
 - Recovery of a transfer stuck in `SENDING` after a crash, and a callback-driven `FAILED`/`CANCELLED` (the brief says the partner only sends `COMPLETED`).
+- A check that a repeated `eventId` belongs to the same `partnerRef`: a reused `eventId` for another transfer returns 200 and changes nothing (DESIGN Q5).
+- Sending in the background: `/send` keeps the HTTP request open until the partner calls end.
 - Things the brief says not to build: authentication and user accounts, list/paging/filter endpoints, CI, OpenAPI/Swagger, logging framework setup, admin API, metrics, health check, UI.
