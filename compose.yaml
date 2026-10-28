@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+
+  test:
+    image: docker.io/library/eclipse-temurin:17.0.20_8-jdk
+    profiles: [tools]  # up에서는 제외, run으로만 실행
+    working_dir: /work
+    volumes:
+      - .:/work:z  # z는 SELinux 호스트(Fedora 등)에서 접근 허용
+      - m2:/root/.m2  # 의존성 캐시 유지
+    command: ./mvnw -B test
+
+  scenarios:
+    image: docker.io/library/alpine:3.22
+    profiles: [tools]  # up에서는 제외, run으로만 실행
+    depends_on: [app]
+    working_dir: /work
+    volumes:
+      - ./scripts:/work/scripts:ro,z  # 스크립트만 읽기 전용 (z는 SELinux용)
+    environment:
+      BASE: http://app:8080  # 컨테이너 안에서 app 서비스 이름으로 접속
+    # 앱이 응답할 때까지 최대 60초 재시도 후 시나리오 실행
+    command:
+      - sh
+      - -c
+      - |
+        apk add -q --no-cache bash curl
+        for i in $$(seq 60); do curl -s -o /dev/null $$BASE/ && break; sleep 1; done
+        exec bash scripts/scenarios.sh
+
+volumes:
+  m2:

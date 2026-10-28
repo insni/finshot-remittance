@@ -19,6 +19,19 @@ Scenarios S1-S6, against a freshly started app, in a second terminal:
 
 Tests: `./mvnw test` (saved output: `test-output.txt`).
 
+## Run with Docker (optional, no JDK needed)
+
+Only Docker with Compose is needed.
+
+```
+docker compose up -d app              # build and start on http://localhost:8080
+docker compose run --rm scenarios     # S1-S6 against the running app
+docker compose run --rm test          # unit and integration tests
+docker compose down                   # stop and remove
+```
+
+Run the scenarios against a freshly started app, as above. With `podman-compose`, add `--profile tools` to the `run` commands.
+
 ## Stack
 
 Java 17 (source level), Spring Boot 3.5 (web, JDBC), `JdbcTemplate` with plain SQL (no JPA), H2 in-memory, JUnit 5.
