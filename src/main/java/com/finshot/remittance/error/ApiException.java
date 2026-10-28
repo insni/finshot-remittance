@@ -1,6 +1,6 @@
 package com.finshot.remittance.error;
 
-/** 응답 코드를 품은 업무 예외의 공통 부모. 하위 3개가 에러 코드별 타입. */
+/** 응답 코드를 품은 업무 예외의 공통 부모. 하위 4개가 에러 코드별 타입. */
 public abstract class ApiException extends RuntimeException {
 
 	private final ErrorCode code; // 이 예외가 나타내는 에러 코드

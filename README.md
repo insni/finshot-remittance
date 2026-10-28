@@ -1,6 +1,6 @@
-# Finshot remittance API (Part 1)
+# Finshot remittance API
 
-KRW → PHP transfer API: create, read and cancel a transfer. Part 1 only.
+KRW → PHP transfer API: create, read and cancel a transfer (Part 1), and the optional Part 2: send to a fake partner with retries, a daily limit, and the partner callback.
 
 ## Run
 
@@ -17,6 +17,12 @@ Scenarios S1-S6, against a freshly started app, in a second terminal:
 ./scripts/scenarios.sh        # BASE defaults to http://localhost:8080
 ```
 
+Scenarios S7-S9 (Part 2), against a freshly started app (the C002 daily limit stays used until restart):
+
+```
+./scripts/scenarios-part2.sh
+```
+
 Tests: `./mvnw test` (saved output: `test-output.txt`).
 
 ## Run with Docker (optional, no JDK needed)
@@ -26,6 +32,7 @@ Only Docker with Compose is needed.
 ```
 docker compose up -d app              # build and start on http://localhost:8080
 docker compose run --rm scenarios     # S1-S6 against the running app
+docker compose run --rm -e SCRIPT=scenarios-part2.sh scenarios   # S7-S9 (restart the app first for a clean C002 limit)
 docker compose run --rm test          # unit and integration tests
 docker compose down                   # stop and remove
 ```
@@ -46,6 +53,20 @@ curl -X POST http://localhost:8080/api/transfers \
   -H 'Idempotency-Key: 6f1e0c1a-2b7d-4c8e-9a3f-5d2b1c0e7a94' \
   -d '{"customerId":"C001","sendCurrency":"KRW","sendAmount":"500000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
+
+## Part 2: send, limit, callback
+
+- `POST /api/transfers/{transferId}/send` starts the partner call. The brief does not say what triggers it, and sending automatically on create would make the Part 1 cancel (S4) impossible, so sending is an explicit step. Only from `REQUESTED`, otherwise 409 (unknown id → 404). It runs synchronously and returns 200 with the transfer: `SENDING` if the partner accepted, `FAILED` (with `failureReason`) if all 3 attempts failed. The body also has `partnerRef` and an `attempts` list (attemptNo, result, attemptedAt) so the retry log is visible in the response; the same rows are in table `partner_attempts` and in the app log.
+- `POST /api/callbacks/partner` with `{"partnerRef":"P-<transferId>","eventId":"evt_0001","status":"COMPLETED"}` moves `SENDING` → `COMPLETED` and returns 200 with the transfer. Same `eventId` again → 200 with the current transfer, nothing changes. Unknown `partnerRef` → 404. Transfer not in `SENDING` → 409. `status` other than `COMPLETED` or a blank field → 400.
+
+Assumptions:
+
+- `partnerRef` is `"P-" + transferId`, fixed per transfer and stored before the first partner call, so a callback can always find it. Retries do not change it (the partner never sees a duplicate), so a ref that fails the `hashCode` rule fails all 3 attempts; about 30% of transfers end `FAILED`.
+- 3 attempts in total, waiting 100 ms and then 200 ms between them. Each attempt takes at least 200 ms. The partner is called with no DB transaction open.
+- A transfer ends in `SENDING` after the partner accepts, never `COMPLETED` by the send itself. If a callback arrives while the retries are still running, the late `FAILED` update does not overwrite `COMPLETED`.
+- Daily limit: 3,000,000 KRW of `sendAmount` per customer per Asia/Seoul calendar day (by the transfer's `createdAt`). `REQUESTED`, `SENDING` and `COMPLETED` count; `CANCELLED` and `FAILED` do not. A transfer that would take the total above the limit → 422 `LIMIT_EXCEEDED`; exactly 3,000,000 is allowed. Creates for the same customer are serialized by a row lock, so two concurrent requests cannot both pass.
+- A retry of an existing `Idempotency-Key` returns the original transfer and skips the limit check.
+- No recovery job: if the app dies between `SENDING` and the partner result, the transfer stays `SENDING`.
 
 ## AI tools
 
@@ -73,5 +94,6 @@ The brief left these open. Each one is what the code does.
 
 ## Not implemented
 
-- All of Part 2: `PartnerClient` and its retries, moving a transfer to `SENDING` / `COMPLETED` / `FAILED` (the states and the transition table exist, but only cancel changes a status), the daily limit (422 `LIMIT_EXCEEDED`), the partner callback endpoint, scenarios S7-S9, and DESIGN Q4-Q5.
-- Things the brief says not to build: authentication and user accounts, list/paging/filter endpoints, Docker, CI, OpenAPI/Swagger, logging framework setup, admin API, metrics, health check, UI.
+- DESIGN Q4-Q5 and the S7-S9 results in RESULT.md are not written yet (the code and `scripts/scenarios-part2.sh` are there).
+- Recovery of a transfer stuck in `SENDING` after a crash, and a callback-driven `FAILED`/`CANCELLED` (the brief says the partner only sends `COMPLETED`).
+- Things the brief says not to build: authentication and user accounts, list/paging/filter endpoints, CI, OpenAPI/Swagger, logging framework setup, admin API, metrics, health check, UI.

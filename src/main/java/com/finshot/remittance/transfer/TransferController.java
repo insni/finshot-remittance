@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 class TransferController {
 
 	private final TransferService service; // 업무 흐름 담당
+	private final PartnerDispatchService dispatch; // 파트너 전송 담당
 
-	TransferController(TransferService service) {
+	TransferController(TransferService service, PartnerDispatchService dispatch) {
 		this.service = service; // 주입값 보관
+		this.dispatch = dispatch; // 주입값 보관
 	}
 
 	@PostMapping
@@ -36,5 +38,10 @@ class TransferController {
 	@PostMapping("/{transferId}/cancel")
 	TransferResponse cancel(@PathVariable String transferId) {
 		return TransferResponse.from(service.cancel(transferId)); // 취소 후 갱신본
+	}
+
+	@PostMapping("/{transferId}/send")
+	TransferResponse send(@PathVariable String transferId) {
+		return dispatch.send(transferId); // 동기 실행: 접수면 SENDING, 3회 실패면 FAILED (시도 기록 포함)
 	}
 }

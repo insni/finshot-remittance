@@ -17,6 +17,8 @@ record Transfer(
 		BigDecimal receiveAmount, // 받는 금액 (PHP, 소수 2자리)
 		String recipientName, // 수취인
 		TransferStatus status, // 현재 상태
+		String partnerRef, // 파트너 참조값 (SENDING 전이 전엔 null)
+		String failureReason, // 실패 사유 (FAILED일 때만)
 		Instant createdAt, // 생성 시각
 		Instant updatedAt) { // 변경 시각
 }
