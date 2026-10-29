@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.finshot.remittance.dto.CreateTransferRequest;
 
 @SpringBootTest
 class TransferConcurrencyTest {

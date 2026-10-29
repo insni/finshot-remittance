@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

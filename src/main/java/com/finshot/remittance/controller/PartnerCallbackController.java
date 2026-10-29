@@ -1,14 +1,18 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.controller;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.finshot.remittance.dto.PartnerCallbackRequest;
+import com.finshot.remittance.dto.TransferResponse;
+import com.finshot.remittance.service.PartnerCallbackService;
+
 /** 파트너 콜백 HTTP 입출력만 담당. */
 @RestController
 @RequestMapping("/api/callbacks/partner")
-class PartnerCallbackController {
+public class PartnerCallbackController {
 
 	private final PartnerCallbackService service; // 콜백 처리 담당
 

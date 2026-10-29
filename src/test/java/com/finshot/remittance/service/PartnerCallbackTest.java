@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,7 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.finshot.remittance.domain.Transfer;
+import com.finshot.remittance.domain.TransferStatus;
+import com.finshot.remittance.dto.CreateTransferRequest;
+import com.finshot.remittance.dto.PartnerCallbackRequest;
 import com.finshot.remittance.error.ConflictException;
+import com.finshot.remittance.repository.TransferRepository;
 
 @SpringBootTest
 class PartnerCallbackTest {

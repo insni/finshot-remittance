@@ -1,10 +1,10 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.domain;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 /** transfers 테이블 한 행. 금액은 생성 시 한 번 계산해 저장하고 읽을 때 다시 계산하지 않는다. */
-record Transfer(
+public record Transfer(
 		String transferId, // UUID 문자열
 		String customerId, // 송금 고객
 		String idempotencyKey, // 재시도 키

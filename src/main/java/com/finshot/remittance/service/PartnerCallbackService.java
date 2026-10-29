@@ -1,16 +1,21 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.finshot.remittance.domain.Transfer;
+import com.finshot.remittance.domain.TransferStatus;
+import com.finshot.remittance.dto.PartnerCallbackRequest;
 import com.finshot.remittance.error.ConflictException;
 import com.finshot.remittance.error.NotFoundException;
 import com.finshot.remittance.error.ValidationException;
+import com.finshot.remittance.repository.PartnerRepository;
+import com.finshot.remittance.repository.TransferRepository;
 
 /** 파트너 콜백 처리. 송금이 COMPLETED가 되는 유일한 경로. eventId 기준 멱등. */
 @Service
-class PartnerCallbackService {
+public class PartnerCallbackService {
 
 	private static final int MAX_FIELD = 64; // partnerRef·eventId 컬럼 길이
 
@@ -24,7 +29,7 @@ class PartnerCallbackService {
 		this.tx = tx; // 주입값 보관
 	}
 
-	Transfer receive(PartnerCallbackRequest r) {
+	public Transfer receive(PartnerCallbackRequest r) {
 		validate(r); // 1) 400
 		Transfer transfer = transfers.findByPartnerRef(r.partnerRef()) // 2) 모르는 참조값은 404
 				.orElseThrow(() -> new NotFoundException("unknown partnerRef: " + r.partnerRef()));

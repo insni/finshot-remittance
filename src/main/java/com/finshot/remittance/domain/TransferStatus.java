@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.domain;
 
 import java.util.EnumSet;
 import java.util.Map;

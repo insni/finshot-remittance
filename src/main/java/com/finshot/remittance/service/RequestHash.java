@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -7,6 +7,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.finshot.remittance.dto.CreateTransferRequest;
 
 /** 업무 필드 5개를 정규화해 SHA-256 hex로 만든다. 같은 요청이면 같은 값, 하나라도 다르면 다른 값. */
 final class RequestHash {

@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import java.math.BigInteger;
 import java.util.function.BooleanSupplier;
@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Component;
 
+import com.finshot.remittance.dto.CreateTransferRequest;
 import com.finshot.remittance.error.ValidationException;
 
 /** 생성 요청의 형식 검증. 규칙 목록을 순서대로 보고 처음 어긋난 것의 메시지로 400을 낸다. */

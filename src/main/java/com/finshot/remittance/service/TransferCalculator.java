@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

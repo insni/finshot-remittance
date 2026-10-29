@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,10 +10,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.finshot.remittance.dto.CreateTransferRequest;
+import com.finshot.remittance.dto.TransferResponse;
+import com.finshot.remittance.service.PartnerDispatchService;
+import com.finshot.remittance.service.TransferService;
+
 /** HTTP 입출력만 담당. 판단은 서비스, 오류 변환은 GlobalExceptionHandler. */
 @RestController
 @RequestMapping("/api/transfers")
-class TransferController {
+public class TransferController {
 
 	private final TransferService service; // 업무 흐름 담당
 	private final PartnerDispatchService dispatch; // 파트너 전송 담당

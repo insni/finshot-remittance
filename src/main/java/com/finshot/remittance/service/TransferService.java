@@ -1,4 +1,4 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -13,14 +13,18 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.finshot.remittance.domain.Transfer;
+import com.finshot.remittance.domain.TransferStatus;
+import com.finshot.remittance.dto.CreateTransferRequest;
 import com.finshot.remittance.error.ConflictException;
 import com.finshot.remittance.error.LimitExceededException;
 import com.finshot.remittance.error.NotFoundException;
 import com.finshot.remittance.error.ValidationException;
+import com.finshot.remittance.repository.TransferRepository;
 
 /** 송금 생성·조회·취소의 흐름. 멱등성은 DB unique 제약, 일일 한도는 고객 행 잠금으로 지킨다. */
 @Service
-class TransferService {
+public class TransferService {
 
 	private static final String IDEM_CONSTRAINT = "uq_transfers_customer_idem_key"; // 멱등성 unique 제약 이름
 
@@ -37,7 +41,7 @@ class TransferService {
 		this.tx = tx; // 주입값 보관
 	}
 
-	Transfer create(String idempotencyKey, CreateTransferRequest request) {
+	public Transfer create(String idempotencyKey, CreateTransferRequest request) {
 		validator.validate(idempotencyKey, request); // 1) 형식 검증
 		if (!repository.customerExists(request.customerId())) {
 			throw new ValidationException("unknown customerId"); // 2) 모르는 고객은 400
@@ -48,11 +52,11 @@ class TransferService {
 				.orElseGet(() -> insertOrReplay(newTransfer(idempotencyKey, hash, request))); // 없으면 삽입
 	}
 
-	Transfer get(String transferId) {
+	public Transfer get(String transferId) {
 		return repository.findById(transferId).orElseThrow(() -> new NotFoundException("transfer not found: " + transferId)); // 없으면 404
 	}
 
-	Transfer cancel(String transferId) {
+	public Transfer cancel(String transferId) {
 		int changed = repository.transition(transferId, TransferStatus.REQUESTED, TransferStatus.CANCELLED, now()); // 조건부 UPDATE 한 문장
 		if (changed == 0) { // 아무 행도 안 바뀜: 없거나 REQUESTED가 아님
 			Transfer current = get(transferId); // 없으면 여기서 404

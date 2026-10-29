@@ -1,13 +1,15 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.dto;
 
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
+import com.finshot.remittance.domain.Transfer;
 import com.finshot.remittance.partner.PartnerAttempt;
 
 /** 응답 body. 금액은 전부 문자열 (receiveAmount는 항상 소수 2자리). 값이 없는 파트너 관련 필드는 body에서 뺀다. */
 @JsonInclude(JsonInclude.Include.NON_NULL) // 앞 11개는 항상 값이 있어 영향 없음
-record TransferResponse(
+public record TransferResponse(
 		String transferId, // 송금 ID
 		String status, // 상태
 		String sendAmount, // 보내는 금액
@@ -26,11 +28,11 @@ record TransferResponse(
 	record Attempt(int attemptNo, String result, String attemptedAt) { // 시도 한 건의 응답 표현
 	}
 
-	static TransferResponse from(Transfer t) {
+	public static TransferResponse from(Transfer t) {
 		return from(t, null); // 시도 기록 없이
 	}
 
-	static TransferResponse from(Transfer t, List<PartnerAttempt> attempts) {
+	public static TransferResponse from(Transfer t, List<PartnerAttempt> attempts) {
 		return new TransferResponse(t.transferId(), t.status().name(), t.sendAmount().toPlainString(), // 저장값을 그대로 문자열화
 				t.fee().toPlainString(), t.totalDebit().toPlainString(), t.receiveAmount().toPlainString(), // 지수 표기 방지
 				t.createdAt().toString(), t.customerId(), t.sendCurrency(), t.receiveCurrency(), t.recipientName(), // Instant는 ISO-8601

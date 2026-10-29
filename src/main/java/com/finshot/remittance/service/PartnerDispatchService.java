@@ -1,20 +1,24 @@
-package com.finshot.remittance.transfer;
+package com.finshot.remittance.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.finshot.remittance.domain.Transfer;
+import com.finshot.remittance.dto.TransferResponse;
 import com.finshot.remittance.error.ConflictException;
 import com.finshot.remittance.error.NotFoundException;
 import com.finshot.remittance.partner.PartnerAttempt;
 import com.finshot.remittance.partner.PartnerClient;
+import com.finshot.remittance.repository.PartnerRepository;
+import com.finshot.remittance.repository.TransferRepository;
 
 /**
  * 송금을 파트너에게 보내는 흐름. SENDING 전이와 partner_ref 저장은 파트너 호출보다 먼저, 호출 중엔 DB 트랜잭션·잠금을 잡지 않는다.
  * 파트너 접수는 완료가 아니다: 접수되면 SENDING 그대로 두고 콜백을 기다린다.
  */
 @Service
-class PartnerDispatchService {
+public class PartnerDispatchService {
 
 	private static final Logger log = LoggerFactory.getLogger(PartnerDispatchService.class); // 시도 로그용
 	private static final long[] BACKOFF_MS = {100, 200}; // 1->2회, 2->3회 사이 대기. 길이+1 = 총 시도 횟수
@@ -31,7 +35,7 @@ class PartnerDispatchService {
 	}
 
 	/** 동기 실행: 끝나면 SENDING(접수) 또는 FAILED(3회 실패)인 송금과 시도 기록을 돌려준다. */
-	TransferResponse send(String transferId) {
+	public TransferResponse send(String transferId) {
 		String partnerRef = "P-" + transferId; // 송금마다 고정: 재시도해도 같은 값이라 파트너에 중복이 없다
 		if (transfers.startSending(transferId, partnerRef, TransferService.now()) == 0) { // 1) 조건부 UPDATE 한 문장 (자체로 원자적)
 			Transfer current = transfers.findById(transferId).orElseThrow(() -> new NotFoundException("transfer not found: " + transferId)); // 없으면 404
