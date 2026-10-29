@@ -23,7 +23,7 @@ Scenarios S7-S9 (Part 2), against a freshly started app (the C002 daily limit st
 ./scripts/scenarios-part2.sh
 ```
 
-Tests: `./mvnw test` (saved output: `test-output.txt`).
+Tests: `./mvnw test` (saved output: `test-output.txt`); one test class per scenario S1-S9 in `src/test/java/com/finshot/remittance/scenario`.
 
 ## Run with Docker (optional, no JDK needed)
 

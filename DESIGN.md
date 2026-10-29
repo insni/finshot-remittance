@@ -30,7 +30,7 @@ A retry is identified by `(customerId, Idempotency-Key)`. The row also stores `r
 
 It is enforced in the database by `UNIQUE (customer_id, idempotency_key)`. The app only compares hashes.
 
-Two identical requests at the same moment: both find no row. The insert transaction locks the customer row first (Q4): one inserts, the other waits, re-reads by key, and returns the winner's transfer (hash compared). The unique constraint is the backstop: a duplicate INSERT → `DuplicateKeyException` (checked by constraint name) → same replay. `TransferConcurrencyTest`: 16 parallel creates, one row, one `transferId`.
+Two identical requests at the same moment: both find no row. The insert transaction locks the customer row first (Q4): one inserts, the other waits, re-reads by key, and returns the winner's transfer (hash compared). The unique constraint is the backstop: a duplicate INSERT → `DuplicateKeyException` (checked by constraint name) → same replay. `S2RetryTest`: 16 parallel creates, one row, one `transferId`.
 
 A replay returns the transfer's current state, e.g. `CANCELLED` after a cancel.
 
@@ -61,7 +61,7 @@ A pessimistic row lock. If the key is new, `TransferService.create` runs one tra
 
 A second create for the same customer waits at step 1, so its sum includes the first insert. Other customers are not blocked.
 
-`DailyLimitConcurrencyTest`: 8 parallel creates of 1,000,000 → exactly 3 pass. With the lock line removed, 7-8 pass.
+`S7DailyLimitTest`: 8 parallel creates of 1,000,000 → exactly 3 pass. With the lock line removed, 3-4 pass.
 
 Given up:
 - Creates for one customer run one at a time, holding the lock until commit.
