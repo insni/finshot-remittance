@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 
 import com.finshot.remittance.error.ConflictException;
 import com.finshot.remittance.error.NotFoundException;
+import com.finshot.remittance.partner.PartnerAttempt;
+import com.finshot.remittance.partner.PartnerClient;
 
 /**
  * 송금을 파트너에게 보내는 흐름. SENDING 전이와 partner_ref 저장은 파트너 호출보다 먼저, 호출 중엔 DB 트랜잭션·잠금을 잡지 않는다.

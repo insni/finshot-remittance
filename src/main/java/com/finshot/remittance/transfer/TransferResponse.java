@@ -3,6 +3,7 @@ package com.finshot.remittance.transfer;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.finshot.remittance.partner.PartnerAttempt;
 
 /** 응답 body. 금액은 전부 문자열 (receiveAmount는 항상 소수 2자리). 값이 없는 파트너 관련 필드는 body에서 뺀다. */
 @JsonInclude(JsonInclude.Include.NON_NULL) // 앞 11개는 항상 값이 있어 영향 없음

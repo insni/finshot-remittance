@@ -9,6 +9,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import com.finshot.remittance.partner.PartnerAttempt;
+
 /** partner_attempts·callback_events 접근(SQL)만 담당. */
 @Repository
 class PartnerRepository {
