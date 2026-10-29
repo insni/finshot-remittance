@@ -61,7 +61,7 @@ A pessimistic row lock. If the key is new, `TransferService.create` runs one tra
 
 A second create for the same customer waits at step 1, so its sum includes the first insert. Other customers are not blocked.
 
-`S7DailyLimitTest`: 8 parallel creates of 1,000,000 → exactly 3 pass. With the lock line removed, 3-4 pass.
+`S7DailyLimitTest`: 8 parallel creates of 1,000,000 → exactly 3 pass. With the lock line removed, 8 pass.
 
 Given up:
 - Creates for one customer run one at a time, holding the lock until commit.
