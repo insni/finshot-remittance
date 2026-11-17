@@ -2,24 +2,24 @@ package com.finshot.remittance.partner;
 
 import org.springframework.stereotype.Component;
 
-/** 가짜 파트너. 실제 서비스를 부르지 않고 partnerRef만으로 성공·실패가 정해진다(난수 없음). */
+/** Fake partner. No real service is called; success or failure depends only on partnerRef (no randomness). */
 @Component
 public class PartnerClient {
 
-	static final long MIN_LATENCY_MS = 200; // 시도 한 번의 최소 소요 시간
+	static final long MIN_LATENCY_MS = 200; // minimum time of one attempt
 
-	/** 파트너가 요청을 접수하면 true. 접수일 뿐 송금 완료가 아니다. 실패 조건: abs(hashCode) % 10 < 3. */
+	/** True if the partner accepts the request. Accepted is not completed. Spec: the attempt fails when {@code abs(partnerRef.hashCode()) % 10 < 3}. */
 	public boolean submit(String partnerRef) {
-		sleepLatency(); // 최소 200ms 소요
-		return Math.abs((long) partnerRef.hashCode()) % 10 >= 3; // long으로 계산해 Integer.MIN_VALUE의 abs 음수 문제 회피
+		sleepLatency(); // takes at least 200ms
+		return Math.abs((long) partnerRef.hashCode()) % 10 >= 3; // cast to long so abs is correct for Integer.MIN_VALUE (int abs would stay negative)
 	}
 
 	private static void sleepLatency() {
 		try {
-			Thread.sleep(MIN_LATENCY_MS); // 파트너 응답 지연 흉내
+			Thread.sleep(MIN_LATENCY_MS); // simulate partner latency
 		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt(); // 인터럽트 상태 복원
-			throw new IllegalStateException("interrupted during partner call", e); // 중단 신호는 삼키지 않음
+			Thread.currentThread().interrupt(); // restore interrupt flag
+			throw new IllegalStateException("interrupted during partner call", e); // do not swallow the interrupt
 		}
 	}
 }

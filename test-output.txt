@@ -1,5 +1,5 @@
 [INFO] Scanning for projects...
-[INFO] Loaded 24285 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO] Loaded 24313 auto-discovered prefixes for remote repository central (prefixes-central.txt)
 [INFO] 
 [INFO] -----------------------< com.finshot:remittance >-----------------------
 [INFO] Building remittance 0.0.1-SNAPSHOT
@@ -12,13 +12,15 @@
 [INFO] Copying 1 resource from  to target/classes
 [INFO] 
 [INFO] --- compiler:3.14.1:compile (default-compile) @ remittance ---
-[INFO] Nothing to compile - all classes are up to date.
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 26 source files with javac [debug parameters release 17] to target/classes
 [INFO] 
 [INFO] --- resources:3.3.1:testResources (default-testResources) @ remittance ---
-[INFO] skip non existing resourceDirectory /home/insuchoe/Documents/pinshot/finshot-remittance/src/test/resources
+[INFO] skip non existing resourceDirectory /work/src/test/resources
 [INFO] 
 [INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ remittance ---
-[INFO] Nothing to compile - all classes are up to date.
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 11 source files with javac [debug parameters release 17] to target/test-classes
 [INFO] 
 [INFO] --- surefire:3.5.6:test (default-test) @ remittance ---
 [INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
@@ -26,9 +28,9 @@
 [INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
-[INFO] Running S1 C001, 금액 500000으로 송금 생성
-22:02:57.363 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S1CreateTest]: S1CreateTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-22:02:57.410 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S1CreateTest
+[INFO] Running S1 Create a transfer for C001, amount 500000
+11:05:34.705 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S1CreateTest]: S1CreateTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+11:05:34.755 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S1CreateTest
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -39,80 +41,70 @@
 
  :: Spring Boot ::               (v3.5.16)
 
-2026-10-29T22:02:57.643+09:00  INFO 839223 --- [remittance] [           main] c.f.remittance.scenario.S1CreateTest     : Starting S1CreateTest using Java 25.0.3 with PID 839223 (started by insuchoe in /home/insuchoe/Documents/pinshot/finshot-remittance)
-2026-10-29T22:02:57.644+09:00  INFO 839223 --- [remittance] [           main] c.f.remittance.scenario.S1CreateTest     : No active profile set, falling back to 1 default profile: "default"
-2026-10-29T22:02:58.111+09:00  INFO 839223 --- [remittance] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
-2026-10-29T22:02:58.118+09:00  INFO 839223 --- [remittance] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-10-29T22:02:58.118+09:00  INFO 839223 --- [remittance] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
-2026-10-29T22:02:58.138+09:00  INFO 839223 --- [remittance] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-10-29T22:02:58.139+09:00  INFO 839223 --- [remittance] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 489 ms
-2026-10-29T22:02:58.192+09:00  INFO 839223 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-10-29T22:02:58.313+09:00  INFO 839223 --- [remittance] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:remittance user=SA
-2026-10-29T22:02:58.314+09:00  INFO 839223 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-10-29T22:02:58.640+09:00  INFO 839223 --- [remittance] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 42053 (http) with context path '/'
-2026-10-29T22:02:58.646+09:00  INFO 839223 --- [remittance] [           main] c.f.remittance.scenario.S1CreateTest     : Started S1CreateTest in 1.153 seconds (process running for 1.597)
-Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+2026-10-31T11:05:34.936Z  INFO 191 --- [remittance] [           main] c.f.remittance.scenario.S1CreateTest     : Starting S1CreateTest using Java 17.0.20 with PID 191 (started by root in /work)
+2026-10-31T11:05:34.937Z  INFO 191 --- [remittance] [           main] c.f.remittance.scenario.S1CreateTest     : No active profile set, falling back to 1 default profile: "default"
+2026-10-31T11:05:35.358Z  INFO 191 --- [remittance] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
+2026-10-31T11:05:35.379Z  INFO 191 --- [remittance] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-31T11:05:35.380Z  INFO 191 --- [remittance] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-10-31T11:05:35.401Z  INFO 191 --- [remittance] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-10-31T11:05:35.402Z  INFO 191 --- [remittance] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 458 ms
+2026-10-31T11:05:35.461Z  INFO 191 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-31T11:05:35.550Z  INFO 191 --- [remittance] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:remittance user=SA
+2026-10-31T11:05:35.551Z  INFO 191 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-31T11:05:35.870Z  INFO 191 --- [remittance] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 39515 (http) with context path '/'
+2026-10-31T11:05:35.876Z  INFO 191 --- [remittance] [           main] c.f.remittance.scenario.S1CreateTest     : Started S1CreateTest in 1.057 seconds (process running for 1.462)
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-WARNING: A Java agent has been loaded dynamically (/home/insuchoe/.m2/repository/net/bytebuddy/byte-buddy-agent/1.17.8/byte-buddy-agent-1.17.8.jar)
-WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
-WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
-WARNING: Dynamic loading of agents will be disallowed by default in a future release
-2026-10-29T22:02:59.174+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-10-29T22:02:59.174+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-10-29T22:02:59.175+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.004 s -- in S1 C001, 금액 500000으로 송금 생성
-[INFO] Running S2 S1의 재시도 - 완전히 동일한 요청을 다시 전송
-2026-10-29T22:02:59.310+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S2RetryTest]: S2RetryTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:02:59.312+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S2RetryTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.070 s -- in S2 S1의 재시도 - 완전히 동일한 요청을 다시 전송
-[INFO] Running S3 같은 재시도 신호로 금액만 600000으로 바꿔 전송
-2026-10-29T22:02:59.381+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S3ConflictTest]: S3ConflictTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:02:59.384+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S3ConflictTest
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.029 s -- in S3 같은 재시도 신호로 금액만 600000으로 바꿔 전송
-[INFO] Running S4 다른 송금을 생성한 뒤 취소
-2026-10-29T22:02:59.413+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S4CancelTest]: S4CancelTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:02:59.415+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S4CancelTest
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.029 s -- in S4 다른 송금을 생성한 뒤 취소
-[INFO] Running S5 같은 송금을 다시 취소
-2026-10-29T22:02:59.442+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S5CancelAgainTest]: S5CancelAgainTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:02:59.444+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S5CancelAgainTest
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in S5 같은 송금을 다시 취소
-[INFO] Running S6 sendAmount = 5000으로 생성
-2026-10-29T22:02:59.463+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S6ValidationTest]: S6ValidationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:02:59.464+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S6ValidationTest
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in S6 sendAmount = 5000으로 생성
-[INFO] Running S7 C002로 일일 한도를 초과할 때까지 송금 제출
-2026-10-29T22:02:59.472+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S7DailyLimitTest]: S7DailyLimitTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:02:59.474+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S7DailyLimitTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.034 s -- in S7 C002로 일일 한도를 초과할 때까지 송금 제출
-[INFO] Running S8 같은 콜백(같은 eventId)을 두 번 전송
-2026-10-29T22:02:59.509+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S8CallbackTest]: S8CallbackTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:02:59.511+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S8CallbackTest
-2026-10-29T22:02:59.737+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-f701d41d-7640-4562-9d2c-9ab004509ae1 result=ACCEPTED
-2026-10-29T22:03:00.024+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-3] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-7923c56e-b63b-45b4-892f-c0281bd9e11b result=FAILED
-2026-10-29T22:03:00.326+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-3] c.f.r.service.PartnerDispatchService     : partner call attempt=2 partnerRef=P-7923c56e-b63b-45b4-892f-c0281bd9e11b result=FAILED
-2026-10-29T22:03:00.728+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-3] c.f.r.service.PartnerDispatchService     : partner call attempt=3 partnerRef=P-7923c56e-b63b-45b4-892f-c0281bd9e11b result=FAILED
-2026-10-29T22:03:00.959+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-a42bc930-28fa-4569-a19f-84f2584daa59 result=FAILED
-2026-10-29T22:03:01.261+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=2 partnerRef=P-a42bc930-28fa-4569-a19f-84f2584daa59 result=FAILED
-2026-10-29T22:03:01.662+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=3 partnerRef=P-a42bc930-28fa-4569-a19f-84f2584daa59 result=FAILED
-2026-10-29T22:03:01.889+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-6] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-ed0edcbf-e12d-41b8-bcf4-777feb4c3341 result=FAILED
-2026-10-29T22:03:02.190+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-6] c.f.r.service.PartnerDispatchService     : partner call attempt=2 partnerRef=P-ed0edcbf-e12d-41b8-bcf4-777feb4c3341 result=FAILED
-2026-10-29T22:03:02.593+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-6] c.f.r.service.PartnerDispatchService     : partner call attempt=3 partnerRef=P-ed0edcbf-e12d-41b8-bcf4-777feb4c3341 result=FAILED
-2026-10-29T22:03:02.829+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-ae4db0f8-1ea2-4410-be1f-2032c4a72994 result=ACCEPTED
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.357 s -- in S8 같은 콜백(같은 eventId)을 두 번 전송
-[INFO] Running S9 partnerRef가 파트너 실패를 유발하는 송금 생성
-2026-10-29T22:03:02.872+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S9PartnerFailTest]: S9PartnerFailTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:03:02.875+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S9PartnerFailTest
-2026-10-29T22:03:03.724+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-3] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-39f20939-4d53-4790-a2ef-e338d03be7f6 result=ACCEPTED
-2026-10-29T22:03:03.966+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-ff826556-a3b9-47c6-8c90-dbfd9c883ef1 result=ACCEPTED
-2026-10-29T22:03:04.195+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-6] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-96e0d1dc-eccf-4004-9426-2789184b5b4e result=ACCEPTED
-2026-10-29T22:03:04.424+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-e6c89186-cf60-4421-ab6b-e80e1ef3aa7b result=FAILED
-2026-10-29T22:03:04.726+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] c.f.r.service.PartnerDispatchService     : partner call attempt=2 partnerRef=P-e6c89186-cf60-4421-ab6b-e80e1ef3aa7b result=FAILED
-2026-10-29T22:03:05.127+09:00  INFO 839223 --- [remittance] [o-auto-1-exec-1] c.f.r.service.PartnerDispatchService     : partner call attempt=3 partnerRef=P-e6c89186-cf60-4421-ab6b-e80e1ef3aa7b result=FAILED
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.267 s -- in S9 partnerRef가 파트너 실패를 유발하는 송금 생성
+2026-10-31T11:05:36.345Z  INFO 191 --- [remittance] [o-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-31T11:05:36.346Z  INFO 191 --- [remittance] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-31T11:05:36.347Z  INFO 191 --- [remittance] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.838 s -- in S1 Create a transfer for C001, amount 500000
+[INFO] Running S2 Retry of S1 - send the exact same request again
+2026-10-31T11:05:36.491Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S2RetryTest]: S2RetryTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:36.493Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S2RetryTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.073 s -- in S2 Retry of S1 - send the exact same request again
+[INFO] Running S3 Same retry signal as S1, amount changed to 600000
+2026-10-31T11:05:36.566Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S3ConflictTest]: S3ConflictTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:36.568Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S3ConflictTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.035 s -- in S3 Same retry signal as S1, amount changed to 600000
+[INFO] Running S4 Create another transfer, then cancel it
+2026-10-31T11:05:36.602Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S4CancelTest]: S4CancelTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:36.603Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S4CancelTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in S4 Create another transfer, then cancel it
+[INFO] Running S5 Cancel the same transfer again
+2026-10-31T11:05:36.623Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S5CancelAgainTest]: S5CancelAgainTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:36.624Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S5CancelAgainTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.029 s -- in S5 Cancel the same transfer again
+[INFO] Running S6 Create with sendAmount = 5000
+2026-10-31T11:05:36.653Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S6ValidationTest]: S6ValidationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:36.654Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S6ValidationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in S6 Create with sendAmount = 5000
+[INFO] Running S7 Submit transfers for C002 until the daily limit is exceeded
+2026-10-31T11:05:36.671Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S7DailyLimitTest]: S7DailyLimitTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:36.673Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S7DailyLimitTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.041 s -- in S7 Submit transfers for C002 until the daily limit is exceeded
+[INFO] Running S8 Send the same callback (same eventId) twice
+2026-10-31T11:05:36.713Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S8CallbackTest]: S8CallbackTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:36.714Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S8CallbackTest
+2026-10-31T11:05:36.934Z  INFO 191 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-4e2ea7fa-b5f8-45e3-8f87-6d8253fabaca result=FAILED
+2026-10-31T11:05:37.236Z  INFO 191 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=2 partnerRef=P-4e2ea7fa-b5f8-45e3-8f87-6d8253fabaca result=FAILED
+2026-10-31T11:05:37.639Z  INFO 191 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=3 partnerRef=P-4e2ea7fa-b5f8-45e3-8f87-6d8253fabaca result=FAILED
+2026-10-31T11:05:37.872Z  INFO 191 --- [remittance] [o-auto-1-exec-2] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-04a7b007-e716-422e-8475-546ce9e9b558 result=ACCEPTED
+2026-10-31T11:05:38.155Z  INFO 191 --- [remittance] [o-auto-1-exec-6] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-478904bf-6e77-477e-b304-c483522a2645 result=ACCEPTED
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.490 s -- in S8 Send the same callback (same eventId) twice
+[INFO] Running S9 Create a transfer whose partnerRef makes the partner fail
+2026-10-31T11:05:38.205Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.scenario.S9PartnerFailTest]: S9PartnerFailTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:38.206Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.scenario.S9PartnerFailTest
+2026-10-31T11:05:39.031Z  INFO 191 --- [remittance] [o-auto-1-exec-8] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-a2c6970c-190a-49a7-97ba-6008adf7fe30 result=ACCEPTED
+2026-10-31T11:05:39.251Z  INFO 191 --- [remittance] [o-auto-1-exec-2] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-772a6acc-f6cd-40b0-b655-7d1fb3178bc0 result=ACCEPTED
+2026-10-31T11:05:39.493Z  INFO 191 --- [remittance] [o-auto-1-exec-9] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-0aa03572-fb8d-4a33-9830-8bd5198af138 result=ACCEPTED
+2026-10-31T11:05:39.714Z  INFO 191 --- [remittance] [o-auto-1-exec-6] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-48ebcf58-06ff-4e46-be12-576401a3ed6b result=ACCEPTED
+2026-10-31T11:05:39.940Z  INFO 191 --- [remittance] [o-auto-1-exec-7] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-e364855a-9f94-437c-bab9-8e704abf9ac7 result=FAILED
+2026-10-31T11:05:40.242Z  INFO 191 --- [remittance] [o-auto-1-exec-7] c.f.r.service.PartnerDispatchService     : partner call attempt=2 partnerRef=P-e364855a-9f94-437c-bab9-8e704abf9ac7 result=FAILED
+2026-10-31T11:05:40.645Z  INFO 191 --- [remittance] [o-auto-1-exec-7] c.f.r.service.PartnerDispatchService     : partner call attempt=3 partnerRef=P-e364855a-9f94-437c-bab9-8e704abf9ac7 result=FAILED
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.458 s -- in S9 Create a transfer whose partnerRef makes the partner fail
 [INFO] Running com.finshot.remittance.RemittanceApplicationTests
-2026-10-29T22:03:05.149+09:00  INFO 839223 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.RemittanceApplicationTests]: RemittanceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-10-29T22:03:05.209+09:00  INFO 839223 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.RemittanceApplicationTests
+2026-10-31T11:05:40.664Z  INFO 191 --- [remittance] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.finshot.remittance.RemittanceApplicationTests]: RemittanceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-31T11:05:40.674Z  INFO 191 --- [remittance] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.finshot.remittance.RemittanceApplication for test class com.finshot.remittance.RemittanceApplicationTests
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -123,13 +115,13 @@ WARNING: Dynamic loading of agents will be disallowed by default in a future rel
 
  :: Spring Boot ::               (v3.5.16)
 
-2026-10-29T22:03:05.245+09:00  INFO 839223 --- [remittance] [           main] c.f.r.RemittanceApplicationTests         : Starting RemittanceApplicationTests using Java 25.0.3 with PID 839223 (started by insuchoe in /home/insuchoe/Documents/pinshot/finshot-remittance)
-2026-10-29T22:03:05.245+09:00  INFO 839223 --- [remittance] [           main] c.f.r.RemittanceApplicationTests         : No active profile set, falling back to 1 default profile: "default"
-2026-10-29T22:03:05.349+09:00  INFO 839223 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
-2026-10-29T22:03:05.350+09:00  INFO 839223 --- [remittance] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:remittance user=SA
-2026-10-29T22:03:05.350+09:00  INFO 839223 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
-2026-10-29T22:03:05.409+09:00  INFO 839223 --- [remittance] [           main] c.f.r.RemittanceApplicationTests         : Started RemittanceApplicationTests in 0.188 seconds (process running for 8.361)
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.275 s -- in com.finshot.remittance.RemittanceApplicationTests
+2026-10-31T11:05:40.702Z  INFO 191 --- [remittance] [           main] c.f.r.RemittanceApplicationTests         : Starting RemittanceApplicationTests using Java 17.0.20 with PID 191 (started by root in /work)
+2026-10-31T11:05:40.702Z  INFO 191 --- [remittance] [           main] c.f.r.RemittanceApplicationTests         : No active profile set, falling back to 1 default profile: "default"
+2026-10-31T11:05:40.785Z  INFO 191 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-10-31T11:05:40.788Z  INFO 191 --- [remittance] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:remittance user=SA
+2026-10-31T11:05:40.788Z  INFO 191 --- [remittance] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-10-31T11:05:40.845Z  INFO 191 --- [remittance] [           main] c.f.r.RemittanceApplicationTests         : Started RemittanceApplicationTests in 0.165 seconds (process running for 6.431)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.187 s -- in com.finshot.remittance.RemittanceApplicationTests
 [INFO] 
 [INFO] Results:
 [INFO] 
@@ -138,6 +130,6 @@ WARNING: Dynamic loading of agents will be disallowed by default in a future rel
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  10.879 s
-[INFO] Finished at: 2026-10-29T22:03:05+09:00
+[INFO] Total time:  9.297 s
+[INFO] Finished at: 2026-10-31T11:05:41Z
 [INFO] ------------------------------------------------------------------------

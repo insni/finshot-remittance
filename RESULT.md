@@ -1,106 +1,135 @@
 # RESULT
 
-S1-S6 were run in order against a freshly started app on 2026-10-28.
-S7-S9 (Part 2) were run later the same day against another freshly started app, see [Part 2 scenarios](#part-2-scenarios-s7-s9).
-H2 is in-memory, so a fresh start has no transfers.
+S1-S9, run in order on one freshly started app (2026-10-31). Requests are complete curl commands.
 
-How it was run:
+## How to run
 
-```
-./mvnw -q -DskipTests package
-java -jar target/remittance-0.0.1-SNAPSHOT.jar
-BASE=http://localhost:8080 ./scripts/scenarios.sh    # while the app is running
-```
+Start from a machine with nothing installed except a container engine. The Docker path needs no Java, no Maven and no database: the database is H2, which runs inside the app.
 
-The blocks below are the script's real output. Only the layout was changed to match the brief
-(the status line was moved and `json` was added to the response fence). No request or response value was edited.
+### Requirements
 
-Notes:
+- Docker Engine with Compose v2 (check: `docker compose version`), or Podman with `podman-compose` (check: `podman-compose --version`).
+- Internet access on the first run: the images and the Maven dependencies are downloaded.
+- Port 8080 must be free on the host.
 
-- Headers: the script sets only `Content-Type` and `Idempotency-Key`, shown in each request.
-  curl also sends its default `Host`, `User-Agent` and `Accept` headers. The server does not use them.
-- The keys `K1`, `K2`, `K3` are short so the output is easy to read. A real client should send a UUID v4 (see README).
-- The cancel requests have no body and no extra headers.
+### 1. Open the project folder
 
-## Summary
-
-| # | Expected | Got |
-|---|---|---|
-| S1 | 201, new transfer | 201, `transferId` 9e55062d-... |
-| S2 | original transfer, no second one | 201, same `transferId` and `createdAt` as S1 |
-| S3 | 409 | 409 CONFLICT |
-| S4 | create, then cancel | 201, then 200 with `status` CANCELLED |
-| S5 | 409 | 409 CONFLICT |
-| S6 | 400 | 400 VALIDATION_ERROR |
-| S7 | creates pass up to the limit, then 422 | 201, 201, 201 (total 3,000,000), then 422 LIMIT_EXCEEDED |
-| S8 | same callback twice: both succeed, state changes once | 200 COMPLETED, 200 COMPLETED (no change), GET COMPLETED |
-| S9 | 3 failed attempts, then FAILED | send 200 FAILED with 3 FAILED attempts, GET FAILED |
-
-All nine scenarios behaved as expected.
-
-## Reproduce with curl
-
-`scripts/scenarios.sh` makes the same calls. Example for S1 and S2 (run the same command twice):
+Unzip the submission or clone the repository, then open a terminal in the folder that contains `compose.yaml`:
 
 ```
-curl -s -X POST http://localhost:8080/api/transfers \
+cd finshot-remittance
+```
+
+### 2. Build and start the app with Docker Compose
+
+```
+docker compose up -d --build app
+```
+
+The first run takes a few minutes: it downloads the base images and builds the app with Maven inside the image.
+The app listens on `http://localhost:8080`. Check that it has started:
+
+```
+docker compose logs app | grep "Started RemittanceApplication"
+```
+
+The database starts empty, with customers C001, C002 and C003 from `schema.sql` and no transfers.
+
+### 3. Run the scenarios in order
+
+Run them on the app from step 2, in this order. Each command prints its output to the terminal; the scenario scripts wait up to 60 seconds for the app before they start.
+
+With Docker Compose v2:
+
+```
+docker compose run --rm scenarios                                  # S1-S6
+docker compose run --rm -e SCRIPT=scenarios-part2.sh scenarios     # S7-S9
+```
+
+With `podman-compose` (for example on Fedora, where `docker compose` runs podman-compose): `--profile tools` must come before `run`, because the `scenarios` and `test` services belong to the `tools` profile:
+
+```
+podman-compose --profile tools run --rm scenarios                                  # S1-S6
+podman-compose --profile tools run --rm -e SCRIPT=scenarios-part2.sh scenarios     # S7-S9
+```
+
+Without `--profile tools`, podman-compose reports `missing services [scenarios]`.
+
+The scenario containers reach the app as `http://app:8080`. To send the calls by hand, paste the curl commands from the Request blocks below, top to bottom, against `http://localhost:8080`.
+Some URLs and bodies contain ids from earlier responses, so use your own: S4b and S5 use the `transferId` from S4a, and S8 and S9 use the ids from their own create and send responses.
+
+### 4. Run again, or stop
+
+To run the scenarios again from an empty database, restart the app and repeat step 3:
+
+```
+docker compose restart app
+```
+
+A restart empties the database. Without a restart, the keys K1-K3 return the transfers from the first run, and the C002 daily limit stays used.
+
+To stop and remove the containers:
+
+```
+docker compose down
+```
+
+### Alternative: run with Maven (JDK 17 or newer)
+
+Only if you have JDK 17+ installed. The Maven wrapper downloads Maven and the dependencies on the first run:
+
+```
+./mvnw spring-boot:run          # terminal 1, keep it running
+./scripts/scenarios.sh          # terminal 2, S1-S6
+./scripts/scenarios-part2.sh    # terminal 2, S7-S9
+```
+
+The scripts need `bash` and `curl` on the host. To run again, stop the app (Ctrl+C) and start it again.
+
+### Troubleshooting
+
+- Port 8080 in use: stop the other program on 8080, or change the `ports` line in `compose.yaml`.
+- The app does not start: run `docker compose logs app` and read the last lines.
+- Scenario output shows `Connection refused`: the app is not ready yet. Wait for the `Started RemittanceApplication` line, then run again.
+
+
+## Part 1: S1-S6
+
+### S1 create C001 500000
+Request:
+```
+curl -i -X POST http://localhost:8080/api/transfers \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: K1' \
   -d '{"customerId":"C001","sendCurrency":"KRW","sendAmount":"500000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
-
-Cancel (replace the id with the `transferId` from the create response):
-
+Status: 201
+Response:
+```json
+{"transferId":"5c0e15af-0b26-4df8-8ba3-d9cb004b2ee9","status":"REQUESTED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-31T05:58:19.180Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
 ```
-curl -s -X POST http://localhost:8080/api/transfers/<transferId>/cancel
-```
 
-## Scenarios
-
-### S1
-
-Customer C001 creates a transfer of 500000 KRW.
-
+### S2 retry same request, same key
 Request:
 ```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: K1
-{"customerId":"C001","sendCurrency":"KRW","sendAmount":"500000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+curl -i -X POST http://localhost:8080/api/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: K1' \
+  -d '{"customerId":"C001","sendCurrency":"KRW","sendAmount":"500000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
 Status: 201
 Response:
 ```json
-{"transferId":"9e55062d-16a0-4a09-afdc-a172eea05a0d","status":"REQUESTED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-28T11:32:01.813Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+{"transferId":"5c0e15af-0b26-4df8-8ba3-d9cb004b2ee9","status":"REQUESTED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-31T05:58:19.180Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
 ```
 
-### S2
-
-Retry of S1: same key `K1`, exactly the same body.
-
+### S3 same key, different amount
 Request:
 ```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: K1
-{"customerId":"C001","sendCurrency":"KRW","sendAmount":"500000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-Status: 201
-Response:
-```json
-{"transferId":"9e55062d-16a0-4a09-afdc-a172eea05a0d","status":"REQUESTED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-28T11:32:01.813Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-
-### S3
-
-Same key `K1` as S1, but sendAmount changed to 600000.
-
-Request:
-```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: K1
-{"customerId":"C001","sendCurrency":"KRW","sendAmount":"600000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+curl -i -X POST http://localhost:8080/api/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: K1' \
+  -d '{"customerId":"C001","sendCurrency":"KRW","sendAmount":"600000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
 Status: 409
 Response:
@@ -108,44 +137,35 @@ Response:
 {"error":"CONFLICT","message":"Idempotency-Key was already used with a different request"}
 ```
 
-### S4
-
-Create another transfer (key `K2`), then cancel it.
-
-**S4a: create**
-
+### S4a create another transfer
 Request:
 ```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: K2
-{"customerId":"C001","sendCurrency":"KRW","sendAmount":"500000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+curl -i -X POST http://localhost:8080/api/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: K2' \
+  -d '{"customerId":"C001","sendCurrency":"KRW","sendAmount":"500000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
 Status: 201
 Response:
 ```json
-{"transferId":"57cc09be-4f67-4be7-8cf5-b214067425f6","status":"REQUESTED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-28T11:32:01.883Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+{"transferId":"3e6eea5d-ec47-481f-9906-a1457925ea3c","status":"REQUESTED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-31T05:58:19.246Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
 ```
 
-**S4b: cancel**
-
+### S4b cancel it
 Request:
 ```
-POST /api/transfers/57cc09be-4f67-4be7-8cf5-b214067425f6/cancel
+curl -i -X POST http://localhost:8080/api/transfers/3e6eea5d-ec47-481f-9906-a1457925ea3c/cancel
 ```
 Status: 200
 Response:
 ```json
-{"transferId":"57cc09be-4f67-4be7-8cf5-b214067425f6","status":"CANCELLED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-28T11:32:01.883Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+{"transferId":"3e6eea5d-ec47-481f-9906-a1457925ea3c","status":"CANCELLED","sendAmount":"500000","fee":"5000","totalDebit":"505000","receiveAmount":"20600.00","createdAt":"2026-10-31T05:58:19.246Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
 ```
 
-### S5
-
-Cancel the S4 transfer again.
-
+### S5 cancel again
 Request:
 ```
-POST /api/transfers/57cc09be-4f67-4be7-8cf5-b214067425f6/cancel
+curl -i -X POST http://localhost:8080/api/transfers/3e6eea5d-ec47-481f-9906-a1457925ea3c/cancel
 ```
 Status: 409
 Response:
@@ -153,16 +173,13 @@ Response:
 {"error":"CONFLICT","message":"cannot cancel a transfer in status CANCELLED"}
 ```
 
-### S6
-
-Create with sendAmount 5000.
-
+### S6 sendAmount 5000
 Request:
 ```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: K3
-{"customerId":"C001","sendCurrency":"KRW","sendAmount":"5000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+curl -i -X POST http://localhost:8080/api/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: K3' \
+  -d '{"customerId":"C001","sendCurrency":"KRW","sendAmount":"5000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
 Status: 400
 Response:
@@ -170,84 +187,31 @@ Response:
 {"error":"VALIDATION_ERROR","message":"sendAmount must be at least 10000"}
 ```
 
-## Part 2 scenarios (S7-S9)
+## Part 2: S7-S9
 
-S7-S9 were run in order against another freshly started app on 2026-10-28, so C002 had no transfers yet.
+`partnerRef` is `"P-" + transferId`, and `transferId` is a random UUID, so whether the partner accepts a transfer changes from run to run. The script therefore creates and sends transfers until it gets the case it needs. S8 needs `SENDING`; this run got it on the first try. S9 needs `FAILED`; this run got it on the third try. Tries 1-2 went to `SENDING` and are not shown. S7-1 and S7-2 send the same body as S7-3 with keys `-1` and `-2`, and both returned 201.
 
-How it was run:
-
-```
-./mvnw -q -DskipTests package
-java -jar target/remittance-0.0.1-SNAPSHOT.jar > app.log     # app log kept for the S9 retry lines
-BASE=http://localhost:8080 ./scripts/scenarios-part2.sh      # while the app is running
-```
-
-Same rules as for S1-S6: the blocks are the script's real output, only the layout was changed.
-
-Notes:
-
-- Create requests set `Content-Type` and `Idempotency-Key`. Callback requests set only `Content-Type`. Send and GET requests have no body and no extra headers.
-- The script puts a run number in every key (`s7-1793188900-1`), so the keys do not clash if it runs twice on one app. The C002 daily limit still stays used until a restart.
-- The partner result depends only on `partnerRef` (`"P-" + transferId`, and the id is a random UUID), and about 30% of refs fail. So S8 and S9 loop: create a 100,000 KRW transfer (C001 for S8, C003 for S9) and send it, until the send ends in `SENDING` (S8) or `FAILED` (S9), at most 50 tries. **This run: S8 needed 2 tries, S9 needed 7 tries.** The earlier tries are listed in a table (their requests differ only in the key). The try that counts is shown in full.
-- The S9 tries 1-6 stay `SENDING`: the script sends no callback for them.
-
-### S7
-
-C002 creates transfers of 1,000,000 KRW until the daily limit (3,000,000 KRW per Asia/Seoul day) is passed. The third create makes the total exactly 3,000,000, which is allowed, so it is the last success. The fourth is rejected.
-
-**S7-1: create**
-
+### S7-3 last success (total reaches 3000000)
 Request:
 ```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: s7-1793188900-1
-{"customerId":"C002","sendCurrency":"KRW","sendAmount":"1000000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+curl -i -X POST http://localhost:8080/api/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: s7-1793426299-3' \
+  -d '{"customerId":"C002","sendCurrency":"KRW","sendAmount":"1000000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
 Status: 201
 Response:
 ```json
-{"transferId":"85e28ccf-32d3-432c-bca0-142da16b8f76","status":"REQUESTED","sendAmount":"1000000","fee":"10000","totalDebit":"1010000","receiveAmount":"41200.00","createdAt":"2026-10-28T12:01:40.343Z","customerId":"C002","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+{"transferId":"e288d36a-b789-4992-bb25-c2aec7ba7d81","status":"REQUESTED","sendAmount":"1000000","fee":"10000","totalDebit":"1010000","receiveAmount":"41200.00","createdAt":"2026-10-31T05:58:19.552Z","customerId":"C002","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
 ```
 
-**S7-2: create**
-
+### S7-4 rejected (daily limit)
 Request:
 ```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: s7-1793188900-2
-{"customerId":"C002","sendCurrency":"KRW","sendAmount":"1000000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-Status: 201
-Response:
-```json
-{"transferId":"ecfb2417-5ad5-4db6-95be-c424c258634b","status":"REQUESTED","sendAmount":"1000000","fee":"10000","totalDebit":"1010000","receiveAmount":"41200.00","createdAt":"2026-10-28T12:01:40.376Z","customerId":"C002","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-
-**S7-3: last success (total 3,000,000)**
-
-Request:
-```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: s7-1793188900-3
-{"customerId":"C002","sendCurrency":"KRW","sendAmount":"1000000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-Status: 201
-Response:
-```json
-{"transferId":"ffa7cc73-d32f-40be-964f-aca40f838ddb","status":"REQUESTED","sendAmount":"1000000","fee":"10000","totalDebit":"1010000","receiveAmount":"41200.00","createdAt":"2026-10-28T12:01:40.388Z","customerId":"C002","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-
-**S7-4: rejected**
-
-Request:
-```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: s7-1793188900-4
-{"customerId":"C002","sendCurrency":"KRW","sendAmount":"1000000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+curl -i -X POST http://localhost:8080/api/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: s7-1793426299-4' \
+  -d '{"customerId":"C002","sendCurrency":"KRW","sendAmount":"1000000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
 ```
 Status: 422
 Response:
@@ -255,176 +219,110 @@ Response:
 {"error":"LIMIT_EXCEEDED","message":"daily limit of 3000000 KRW exceeded: already 3000000 today (Asia/Seoul)"}
 ```
 
-### S8
-
-The same partner callback (same `eventId`) is sent twice to a transfer in `SENDING`.
-
-Tries until a send ended in `SENDING`:
-
-| Try | transferId | send result | attempts |
-|---|---|---|---|
-| 1 | `9ae0b98a-9eb7-41b4-976b-968c4459066d` | FAILED | FAILED, FAILED, FAILED |
-| 2 | `83226e46-5b75-489b-88f4-66e306a8619c` | SENDING | ACCEPTED |
-
-**S8 try 2: create**
-
+### S8 setup: create
 Request:
 ```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: s8-1793188900-2
-{"customerId":"C001","sendCurrency":"KRW","sendAmount":"100000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-Status: 201
-Response:
-```json
-{"transferId":"83226e46-5b75-489b-88f4-66e306a8619c","status":"REQUESTED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:41.411Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-
-**S8 try 2: send** (the partner accepted, so the transfer stays `SENDING` and waits for the callback)
-
-Request:
-```
-POST /api/transfers/83226e46-5b75-489b-88f4-66e306a8619c/send
-```
-Status: 200
-Response:
-```json
-{"transferId":"83226e46-5b75-489b-88f4-66e306a8619c","status":"SENDING","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:41.411Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-83226e46-5b75-489b-88f4-66e306a8619c","attempts":[{"attemptNo":1,"result":"ACCEPTED","attemptedAt":"2026-10-28T12:01:41.637Z"}]}
-```
-
-**S8a: callback, first delivery** → `SENDING` to `COMPLETED`
-
-Request:
-```
-POST /api/callbacks/partner
-Content-Type: application/json
-{"partnerRef":"P-83226e46-5b75-489b-88f4-66e306a8619c","eventId":"evt_1793188900","status":"COMPLETED"}
-```
-Status: 200
-Response:
-```json
-{"transferId":"83226e46-5b75-489b-88f4-66e306a8619c","status":"COMPLETED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:41.411Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-83226e46-5b75-489b-88f4-66e306a8619c"}
-```
-
-**S8b: same callback again** (same `eventId`) → 200, no error, nothing changes
-
-Request:
-```
-POST /api/callbacks/partner
-Content-Type: application/json
-{"partnerRef":"P-83226e46-5b75-489b-88f4-66e306a8619c","eventId":"evt_1793188900","status":"COMPLETED"}
-```
-Status: 200
-Response:
-```json
-{"transferId":"83226e46-5b75-489b-88f4-66e306a8619c","status":"COMPLETED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:41.411Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-83226e46-5b75-489b-88f4-66e306a8619c"}
-```
-
-**S8c: final state**
-
-Request:
-```
-GET /api/transfers/83226e46-5b75-489b-88f4-66e306a8619c
-```
-Status: 200
-Response:
-```json
-{"transferId":"83226e46-5b75-489b-88f4-66e306a8619c","status":"COMPLETED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:41.411Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-83226e46-5b75-489b-88f4-66e306a8619c"}
-```
-
-### S9
-
-A transfer whose `partnerRef` makes the partner fail. All 3 attempts fail and the transfer ends `FAILED`.
-
-Tries until a send ended in `FAILED`:
-
-| Try | transferId | send result | attempts |
-|---|---|---|---|
-| 1 | `75d8d179-f06d-4c9b-a4b1-e3919ecc7f67` | SENDING | ACCEPTED |
-| 2 | `abc87095-a710-4d0a-94c9-2e688cbb44b8` | SENDING | ACCEPTED |
-| 3 | `6c5afc3e-b614-4f58-a710-987abb42c76d` | SENDING | ACCEPTED |
-| 4 | `2593ec36-fe1e-40fd-ac40-99a0fa7ce323` | SENDING | ACCEPTED |
-| 5 | `529ecbd1-bc08-4ec8-8759-08a407596b4c` | SENDING | ACCEPTED |
-| 6 | `a464fd46-5f51-4a7a-889d-6c5d974b9f4f` | SENDING | ACCEPTED |
-| 7 | `68c1a73c-b262-4d31-8787-3e7fc462e935` | FAILED | FAILED, FAILED, FAILED |
-
-**S9 try 7: create**
-
-Request:
-```
-POST /api/transfers
-Content-Type: application/json
-Idempotency-Key: s9-1793188900-7
-{"customerId":"C003","sendCurrency":"KRW","sendAmount":"100000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-Status: 201
-Response:
-```json
-{"transferId":"68c1a73c-b262-4d31-8787-3e7fc462e935","status":"REQUESTED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:43.183Z","customerId":"C003","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
-```
-
-**S9 try 7: send**
-
-Request:
-```
-POST /api/transfers/68c1a73c-b262-4d31-8787-3e7fc462e935/send
-```
-Status: 200
-Response:
-```json
-{"transferId":"68c1a73c-b262-4d31-8787-3e7fc462e935","status":"FAILED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:43.183Z","customerId":"C003","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-68c1a73c-b262-4d31-8787-3e7fc462e935","failureReason":"partner rejected 3 attempts","attempts":[{"attemptNo":1,"result":"FAILED","attemptedAt":"2026-10-28T12:01:43.403Z"},{"attemptNo":2,"result":"FAILED","attemptedAt":"2026-10-28T12:01:43.705Z"},{"attemptNo":3,"result":"FAILED","attemptedAt":"2026-10-28T12:01:44.108Z"}]}
-```
-
-**Retry log.** The send response above has the `attempts` array:
-
-```json
-[{"attemptNo":1,"result":"FAILED","attemptedAt":"2026-10-28T12:01:43.403Z"},{"attemptNo":2,"result":"FAILED","attemptedAt":"2026-10-28T12:01:43.705Z"},{"attemptNo":3,"result":"FAILED","attemptedAt":"2026-10-28T12:01:44.108Z"}]
-```
-
-The attempts are 302 ms and 403 ms apart: 200 ms per partner call plus the 100 ms and 200 ms backoff. The same rows are in table `partner_attempts`. The matching app log lines for `P-68c1a73c-b262-4d31-8787-3e7fc462e935` (the log shows local time, +09:00; `attemptedAt` is UTC):
-
-```
-2026-10-28T21:01:43.404+09:00  INFO 441273 --- [remittance] [nio-8080-exec-7] c.f.r.transfer.PartnerDispatchService    : partner call attempt=1 partnerRef=P-68c1a73c-b262-4d31-8787-3e7fc462e935 result=FAILED
-2026-10-28T21:01:43.707+09:00  INFO 441273 --- [remittance] [nio-8080-exec-7] c.f.r.transfer.PartnerDispatchService    : partner call attempt=2 partnerRef=P-68c1a73c-b262-4d31-8787-3e7fc462e935 result=FAILED
-2026-10-28T21:01:44.109+09:00  INFO 441273 --- [remittance] [nio-8080-exec-7] c.f.r.transfer.PartnerDispatchService    : partner call attempt=3 partnerRef=P-68c1a73c-b262-4d31-8787-3e7fc462e935 result=FAILED
-```
-
-**S9: final state**
-
-Request:
-```
-GET /api/transfers/68c1a73c-b262-4d31-8787-3e7fc462e935
-```
-Status: 200
-Response:
-```json
-{"transferId":"68c1a73c-b262-4d31-8787-3e7fc462e935","status":"FAILED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-28T12:01:43.183Z","customerId":"C003","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-68c1a73c-b262-4d31-8787-3e7fc462e935","failureReason":"partner rejected 3 attempts"}
-```
-
-### Reproduce Part 2
-
-Use a freshly started app: after one S7 run, the C002 limit stays used until a restart.
-
-```
-java -jar target/remittance-0.0.1-SNAPSHOT.jar
-./scripts/scenarios-part2.sh                  # BASE defaults to http://localhost:8080
-```
-
-With Docker:
-
-```
-docker compose up -d app
-docker compose run --rm -e SCRIPT=scenarios-part2.sh scenarios
-```
-
-With `podman-compose`: `podman-compose --profile tools run --rm -e SCRIPT=scenarios-part2.sh scenarios`.
-
-Single calls with curl (replace `<transferId>`):
-
-```
-curl -s -X POST http://localhost:8080/api/transfers/<transferId>/send
-curl -s -X POST http://localhost:8080/api/callbacks/partner \
+curl -i -X POST http://localhost:8080/api/transfers \
   -H 'Content-Type: application/json' \
-  -d '{"partnerRef":"P-<transferId>","eventId":"evt_0001","status":"COMPLETED"}'
+  -H 'Idempotency-Key: s8-1793426299-1' \
+  -d '{"customerId":"C001","sendCurrency":"KRW","sendAmount":"100000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
+```
+Status: 201
+Response:
+```json
+{"transferId":"94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","status":"REQUESTED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:19.597Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+```
+
+### S8 setup: send
+Request:
+```
+curl -i -X POST http://localhost:8080/api/transfers/94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2/send
+```
+Status: 200
+Response:
+```json
+{"transferId":"94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","status":"SENDING","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:19.597Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","attempts":[{"attemptNo":1,"result":"ACCEPTED","attemptedAt":"2026-10-31T05:58:19.814Z"}]}
+```
+
+### S8a callback, first delivery
+Request:
+```
+curl -i -X POST http://localhost:8080/api/callbacks/partner \
+  -H 'Content-Type: application/json' \
+  -d '{"partnerRef":"P-94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","eventId":"evt_1793426299","status":"COMPLETED"}'
+```
+Status: 200
+Response:
+```json
+{"transferId":"94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","status":"COMPLETED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:19.597Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2"}
+```
+
+### S8b same callback again (same eventId)
+Request:
+```
+curl -i -X POST http://localhost:8080/api/callbacks/partner \
+  -H 'Content-Type: application/json' \
+  -d '{"partnerRef":"P-94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","eventId":"evt_1793426299","status":"COMPLETED"}'
+```
+Status: 200
+Response:
+```json
+{"transferId":"94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","status":"COMPLETED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:19.597Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2"}
+```
+
+### S8c final state
+Request:
+```
+curl -i -X GET http://localhost:8080/api/transfers/94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2
+```
+Status: 200
+Response:
+```json
+{"transferId":"94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2","status":"COMPLETED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:19.597Z","customerId":"C001","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-94a7c2fb-d69d-4bdd-b26c-cb06bb83dac2"}
+```
+
+### S9 create
+Request:
+```
+curl -i -X POST http://localhost:8080/api/transfers \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: s9-1793426299-3' \
+  -d '{"customerId":"C003","sendCurrency":"KRW","sendAmount":"100000","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}'
+```
+Status: 201
+Response:
+```json
+{"transferId":"37bf8843-9e06-406b-9e63-d1a2303523e1","status":"REQUESTED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:20.447Z","customerId":"C003","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz"}
+```
+
+### S9 send (retried 3 times, FAILED)
+Request:
+```
+curl -i -X POST http://localhost:8080/api/transfers/37bf8843-9e06-406b-9e63-d1a2303523e1/send
+```
+Status: 200
+Response:
+```json
+{"transferId":"37bf8843-9e06-406b-9e63-d1a2303523e1","status":"FAILED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:20.447Z","customerId":"C003","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-37bf8843-9e06-406b-9e63-d1a2303523e1","failureReason":"partner rejected 3 attempts","attempts":[{"attemptNo":1,"result":"FAILED","attemptedAt":"2026-10-31T05:58:20.680Z"},{"attemptNo":2,"result":"FAILED","attemptedAt":"2026-10-31T05:58:20.981Z"},{"attemptNo":3,"result":"FAILED","attemptedAt":"2026-10-31T05:58:21.382Z"}]}
+```
+
+### S9 final state
+Request:
+```
+curl -i -X GET http://localhost:8080/api/transfers/37bf8843-9e06-406b-9e63-d1a2303523e1
+```
+Status: 200
+Response:
+```json
+{"transferId":"37bf8843-9e06-406b-9e63-d1a2303523e1","status":"FAILED","sendAmount":"100000","fee":"3000","totalDebit":"103000","receiveAmount":"4120.00","createdAt":"2026-10-31T05:58:20.447Z","customerId":"C003","sendCurrency":"KRW","receiveCurrency":"PHP","recipientName":"Juan Dela Cruz","partnerRef":"P-37bf8843-9e06-406b-9e63-d1a2303523e1","failureReason":"partner rejected 3 attempts"}
+```
+
+### S9 retry log
+
+App log for `P-37bf8843-9e06-406b-9e63-d1a2303523e1`:
+
+```
+2026-10-31T14:58:20.681+09:00  INFO 49395 --- [remittance] [nio-8080-exec-7] c.f.r.service.PartnerDispatchService     : partner call attempt=1 partnerRef=P-37bf8843-9e06-406b-9e63-d1a2303523e1 result=FAILED
+2026-10-31T14:58:20.982+09:00  INFO 49395 --- [remittance] [nio-8080-exec-7] c.f.r.service.PartnerDispatchService     : partner call attempt=2 partnerRef=P-37bf8843-9e06-406b-9e63-d1a2303523e1 result=FAILED
+2026-10-31T14:58:21.383+09:00  INFO 49395 --- [remittance] [nio-8080-exec-7] c.f.r.service.PartnerDispatchService     : partner call attempt=3 partnerRef=P-37bf8843-9e06-406b-9e63-d1a2303523e1 result=FAILED
 ```

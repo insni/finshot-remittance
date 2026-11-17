@@ -10,23 +10,23 @@ import java.util.stream.Stream;
 
 import com.finshot.remittance.dto.CreateTransferRequest;
 
-/** 업무 필드 5개를 정규화해 SHA-256 hex로 만든다. 같은 요청이면 같은 값, 하나라도 다르면 다른 값. */
+/** Normalizes the 5 business fields into a SHA-256 hex. Same request gives the same value; any difference gives a different one. */
 final class RequestHash {
 
 	static String of(CreateTransferRequest r) {
-		String canonical = Stream.of(r.customerId(), r.sendCurrency(), new BigInteger(r.sendAmount()).toString(), // 금액은 앞자리 0 제거해 정수로 정규화
-						r.receiveCurrency(), r.recipientName()) // 수취인은 그대로
-				.map(s -> s.length() + ":" + s) // 길이를 붙여 필드 경계 모호함 제거
-				.collect(Collectors.joining("|")); // 하나의 문자열로 결합
-		return sha256Hex(canonical); // 해시 반환
+		String canonical = Stream.of(r.customerId(), r.sendCurrency(), new BigInteger(r.sendAmount()).toString(), // amount normalized to an integer (leading zeros removed)
+						r.receiveCurrency(), r.recipientName()) // recipient name as is
+				.map(s -> s.length() + ":" + s) // length prefix removes field-boundary ambiguity
+				.collect(Collectors.joining("|")); // join into one string
+		return sha256Hex(canonical);
 	}
 
 	private static String sha256Hex(String text) {
 		try {
-			byte[] digest = MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)); // SHA-256 계산
-			return HexFormat.of().formatHex(digest); // 소문자 hex 64자
+			byte[] digest = MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)); // compute SHA-256
+			return HexFormat.of().formatHex(digest); // 64 lowercase hex chars
 		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e); // JVM 표준 알고리즘이라 사실상 도달 불가
+			throw new IllegalStateException(e); // SHA-256 is required on every JVM, so effectively unreachable
 		}
 	}
 }

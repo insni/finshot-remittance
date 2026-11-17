@@ -17,55 +17,55 @@ import com.finshot.remittance.dto.CreateTransferRequest;
 import com.finshot.remittance.error.LimitExceededException;
 import com.finshot.remittance.service.TransferService;
 
-/** S7: C002로 일일 한도를 초과할 때까지 송금 제출. 마지막 성공과 거절을 표시. */
-@DisplayName("S7 C002로 일일 한도를 초과할 때까지 송금 제출")
+/** S7: Submit transfers for C002 until the daily limit is exceeded. */
+@DisplayName("S7 Submit transfers for C002 until the daily limit is exceeded")
 class S7DailyLimitTest extends ScenarioTest {
 
 	@Autowired
-	TransferService transferService; // 한도 경쟁을 HTTP 없이 직접 일으키기 위한 실제 서비스
+	TransferService transferService; // the real service, used to race on the limit without HTTP
 
 	@Test
-	void S7_C002가_100만원씩_3번은_성공하고_4번째는_422() {
+	void S7_C002_three_transfers_of_1000000_succeed_and_the_fourth_returns_422() {
 		for (int i = 1; i <= 3; i++) {
-			assertEquals(HttpStatus.CREATED, create("C002", "1000000", newKey()).getStatusCode(), i + "번째 성공"); // 3번까지 통과
+			assertEquals(HttpStatus.CREATED, create("C002", "1000000", newKey()).getStatusCode(), "transfer " + i + " should succeed"); // first 3 pass
 		}
-		var over = create("C002", "1000000", newKey()); // 4번째: 합계 400만
+		var over = create("C002", "1000000", newKey()); // 4th: total would be 4,000,000
 		assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, over.getStatusCode()); // 422
-		assertEquals("LIMIT_EXCEEDED", over.getBody().get("error").asText()); // 오류 코드
+		assertEquals("LIMIT_EXCEEDED", over.getBody().get("error").asText()); // error code
 	}
 
 	@Test
-	void S7_동시에_8건을_서비스에_직접_보내도_한도만큼만_통과한다() throws Exception {
-		int threads = 8; // 100만 x 8 = 800만 시도, 한도는 300만
-		var start = new CountDownLatch(1); // 출발 신호
-		var pool = Executors.newFixedThreadPool(threads); // 스레드 풀
+	void S7_8_concurrent_calls_straight_to_the_service_pass_only_up_to_the_limit() throws Exception {
+		int threads = 8; // 8 x 1,000,000 = 8,000,000 attempted, limit is 3,000,000
+		var start = new CountDownLatch(1); // start signal
+		var pool = Executors.newFixedThreadPool(threads); // thread pool
 		try {
-			var futures = IntStream.range(0, threads).mapToObj(i -> pool.submit(() -> { // 각 스레드가
-				start.await(); // 신호를 기다렸다가 (HTTP 오차 없이 거의 동시에 서비스 진입)
+			var futures = IntStream.range(0, threads).mapToObj(i -> pool.submit(() -> { // each thread
+				start.await(); // waits for the signal (enters the service almost at once, no HTTP jitter)
 				try {
-					transferService.create(newKey(), new CreateTransferRequest("C003", "KRW", "1000000", "PHP", "Juan Dela Cruz")); // 새 키로 직접 생성
-					return true; // 통과
+					transferService.create(newKey(), new CreateTransferRequest("C003", "KRW", "1000000", "PHP", "Juan Dela Cruz")); // create directly with a new key
+					return true; // passed
 				} catch (LimitExceededException e) {
-					return false; // 한도 초과 거절 (다른 예외는 그대로 던져 시험 실패)
+					return false; // rejected for exceeding the limit (any other exception propagates and fails the test)
 				}
 			})).toList();
-			start.countDown(); // 동시에 출발
-			int created = 0; // 통과 개수
-			int rejected = 0; // 거절 개수
+			start.countDown(); // release all threads at once
+			int created = 0; // number passed
+			int rejected = 0; // number rejected
 			for (var f : futures) {
-				if (f.get()) { // 예외가 나면 시험 실패
-					created++; // 통과
+				if (f.get()) { // an exception fails the test
+					created++; // passed
 				} else {
-					rejected++; // 거절
+					rejected++; // rejected
 				}
 			}
-			assertEquals(3, created, "300만 한도에 100만짜리는 정확히 3건만 통과"); // 경쟁 없이 3건
-			assertEquals(5, rejected); // 나머지 5건은 거절
+			assertEquals(3, created, "with a 3,000,000 limit exactly 3 transfers of 1,000,000 pass"); // 3, with no race
+			assertEquals(5, rejected); // the other 5 are rejected
 			BigDecimal sum = jdbc.queryForObject("SELECT SUM(send_amount) FROM transfers WHERE customer_id = 'C003'",
-					BigDecimal.class); // 실제 저장 합계
-			assertTrue(sum.compareTo(new BigDecimal("3000000")) <= 0, "DB 합계가 한도 이하여야 함: " + sum); // 한도 이하
+					BigDecimal.class); // actual stored total
+			assertTrue(sum.compareTo(new BigDecimal("3000000")) <= 0, "DB total must not exceed the limit: " + sum); // within the limit
 		} finally {
-			pool.shutdownNow(); // 풀 정리
+			pool.shutdownNow(); // clean up the pool
 		}
 	}
 }

@@ -1,11 +1,11 @@
 -- Finshot remittance schema (H2 in-memory; standard SQL where possible)
--- 재시작 시 깨끗하게 다시 만들기 위해 자식 테이블부터 삭제
+-- Drop child tables first so a restart rebuilds everything cleanly
 DROP TABLE IF EXISTS callback_events;
 DROP TABLE IF EXISTS partner_attempts;
 DROP TABLE IF EXISTS transfers;
 DROP TABLE IF EXISTS customers;
 
--- 과제 제공 테이블 (그대로)
+-- Table given by the assignment (unchanged)
 CREATE TABLE customers (
     customer_id VARCHAR(10) PRIMARY KEY,
     name        VARCHAR(100) NOT NULL
@@ -15,62 +15,62 @@ INSERT INTO customers (customer_id, name) VALUES
     ('C001', 'Kim'), ('C002', 'Lee'), ('C003', 'Park');
 
 CREATE TABLE transfers (
-    transfer_id      VARCHAR(36)   NOT NULL,                       -- UUID 문자열
-    customer_id      VARCHAR(10)   NOT NULL,                       -- 송금 고객
-    idempotency_key  VARCHAR(64)   NOT NULL,                       -- 클라이언트 재시도 키 (Idempotency-Key 헤더)
-    request_hash     CHAR(64)      NOT NULL,                       -- 정규화한 요청 body의 SHA-256 (같은 키 다른 내용 감지)
-    send_currency    CHAR(3)       NOT NULL,                       -- 보내는 통화
-    receive_currency CHAR(3)       NOT NULL,                       -- 받는 통화
-    send_amount      BIGINT        NOT NULL,                       -- 보내는 금액 (KRW 원 단위)
-    fee              BIGINT        NOT NULL,                       -- 수수료 (KRW 원 단위)
-    total_debit      BIGINT        NOT NULL,                       -- 총 출금액 = 금액 + 수수료
-    receive_amount   DECIMAL(15,2) NOT NULL,                       -- 받는 금액 (PHP, 소수 2자리)
-    recipient_name   VARCHAR(100)  NOT NULL,                       -- 수취인 이름
-    status           VARCHAR(16)   NOT NULL,                       -- 상태 머신 값
-    partner_ref      VARCHAR(64),                                  -- 파트너 참조값 (SENDING 전이 때 저장, 그 전엔 NULL)
-    failure_reason   VARCHAR(200),                                 -- FAILED일 때 사유
-    created_at       TIMESTAMP     NOT NULL,                       -- 생성 시각
-    updated_at       TIMESTAMP     NOT NULL,                       -- 마지막 변경 시각
+    transfer_id      VARCHAR(36)   NOT NULL,                       -- UUID string
+    customer_id      VARCHAR(10)   NOT NULL,                       -- sending customer
+    idempotency_key  VARCHAR(64)   NOT NULL,                       -- client retry key (Idempotency-Key header)
+    request_hash     CHAR(64)      NOT NULL,                       -- SHA-256 of the normalized request body (detects same key, different content)
+    send_currency    CHAR(3)       NOT NULL,                       -- send currency
+    receive_currency CHAR(3)       NOT NULL,                       -- receive currency
+    send_amount      BIGINT        NOT NULL,                       -- send amount (KRW, whole won)
+    fee              BIGINT        NOT NULL,                       -- fee (KRW, whole won)
+    total_debit      BIGINT        NOT NULL,                       -- total debit = amount + fee
+    receive_amount   DECIMAL(15,2) NOT NULL,                       -- receive amount (PHP, 2 decimal places)
+    recipient_name   VARCHAR(100)  NOT NULL,                       -- recipient name
+    status           VARCHAR(16)   NOT NULL,                       -- state machine value
+    partner_ref      VARCHAR(64),                                  -- partner reference (saved on the move to SENDING, NULL before that)
+    failure_reason   VARCHAR(200),                                 -- reason when FAILED
+    created_at       TIMESTAMP     NOT NULL,                       -- creation time
+    updated_at       TIMESTAMP     NOT NULL,                       -- last update time
 
-    CONSTRAINT pk_transfers PRIMARY KEY (transfer_id),                                       -- 기본키
-    CONSTRAINT fk_transfers_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id), -- 없는 고객 차단
-    CONSTRAINT uq_transfers_customer_idem_key UNIQUE (customer_id, idempotency_key),         -- 중복 송금 차단 (앱이 이름으로 감지)
-    CONSTRAINT uq_transfers_partner_ref UNIQUE (partner_ref),                                -- 콜백이 송금을 찾는 열쇠, 중복 금지
-    CONSTRAINT ck_transfers_send_currency CHECK (send_currency = 'KRW'),                     -- 보내는 통화는 KRW만
-    CONSTRAINT ck_transfers_receive_currency CHECK (receive_currency = 'PHP'),               -- 받는 통화는 PHP만
-    CONSTRAINT ck_transfers_send_amount_min CHECK (send_amount >= 10000),                    -- 최소 송금액
-    CONSTRAINT ck_transfers_fee_min CHECK (fee >= 3000),                                     -- 최소 수수료
-    CONSTRAINT ck_transfers_total_debit CHECK (total_debit = send_amount + fee),             -- 총 출금액 정합성
-    CONSTRAINT ck_transfers_status CHECK (status IN ('REQUESTED', 'SENDING', 'COMPLETED', 'FAILED', 'CANCELLED')) -- 허용 상태 5개
+    CONSTRAINT pk_transfers PRIMARY KEY (transfer_id),                                       -- primary key
+    CONSTRAINT fk_transfers_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id), -- blocks unknown customers
+    CONSTRAINT uq_transfers_customer_idem_key UNIQUE (customer_id, idempotency_key),         -- blocks duplicate transfers (the app detects it by name)
+    CONSTRAINT uq_transfers_partner_ref UNIQUE (partner_ref),                                -- key the callback uses to find the transfer, must be unique
+    CONSTRAINT ck_transfers_send_currency CHECK (send_currency = 'KRW'),                     -- send currency must be KRW
+    CONSTRAINT ck_transfers_receive_currency CHECK (receive_currency = 'PHP'),               -- receive currency must be PHP
+    CONSTRAINT ck_transfers_send_amount_min CHECK (send_amount >= 10000),                    -- minimum transfer amount
+    CONSTRAINT ck_transfers_fee_min CHECK (fee >= 3000),                                     -- minimum fee
+    CONSTRAINT ck_transfers_total_debit CHECK (total_debit = send_amount + fee),             -- total debit must be consistent
+    CONSTRAINT ck_transfers_status CHECK (status IN ('REQUESTED', 'SENDING', 'COMPLETED', 'FAILED', 'CANCELLED')) -- the 5 allowed statuses
 );
 
--- Part 2 일일 한도 합산용: 고객별 기간 조회
+-- Part 2, for summing the daily limit: look up by customer and time range
 CREATE INDEX idx_transfers_customer_created ON transfers (customer_id, created_at);
 
--- Part 2 파트너 호출 시도 기록: 시도마다 한 행 (재시도 로그)
+-- Part 2, partner call attempts: one row per attempt (retry log)
 CREATE TABLE partner_attempts (
-    id           BIGINT      GENERATED BY DEFAULT AS IDENTITY,      -- 행 번호
-    transfer_id  VARCHAR(36) NOT NULL,                              -- 대상 송금
-    partner_ref  VARCHAR(64) NOT NULL,                              -- 시도에 쓴 파트너 참조값
-    attempt_no   INT         NOT NULL,                              -- 시도 번호 (1~3)
-    result       VARCHAR(8)  NOT NULL,                              -- 시도 결과
-    attempted_at TIMESTAMP   NOT NULL,                              -- 시도 시각
+    id           BIGINT      GENERATED BY DEFAULT AS IDENTITY,      -- row id
+    transfer_id  VARCHAR(36) NOT NULL,                              -- target transfer
+    partner_ref  VARCHAR(64) NOT NULL,                              -- partner reference used for the attempt
+    attempt_no   INT         NOT NULL,                              -- attempt number (1 to 3)
+    result       VARCHAR(8)  NOT NULL,                              -- attempt result
+    attempted_at TIMESTAMP   NOT NULL,                              -- attempt time
 
-    CONSTRAINT pk_partner_attempts PRIMARY KEY (id),                                         -- 기본키
-    CONSTRAINT fk_partner_attempts_transfer FOREIGN KEY (transfer_id) REFERENCES transfers (transfer_id), -- 없는 송금 차단
-    CONSTRAINT uq_partner_attempts_transfer_no UNIQUE (transfer_id, attempt_no),             -- 같은 번호 중복 기록 차단
-    CONSTRAINT ck_partner_attempts_no CHECK (attempt_no BETWEEN 1 AND 3),                    -- 최대 3회
-    CONSTRAINT ck_partner_attempts_result CHECK (result IN ('ACCEPTED', 'FAILED'))           -- 접수 또는 실패
+    CONSTRAINT pk_partner_attempts PRIMARY KEY (id),                                         -- primary key
+    CONSTRAINT fk_partner_attempts_transfer FOREIGN KEY (transfer_id) REFERENCES transfers (transfer_id), -- blocks unknown transfers
+    CONSTRAINT uq_partner_attempts_transfer_no UNIQUE (transfer_id, attempt_no),             -- blocks recording the same number twice
+    CONSTRAINT ck_partner_attempts_no CHECK (attempt_no BETWEEN 1 AND 3),                    -- at most 3 attempts
+    CONSTRAINT ck_partner_attempts_result CHECK (result IN ('ACCEPTED', 'FAILED'))           -- accepted or failed
 );
 
--- Part 2 콜백 수신 기록: eventId가 기본키라 같은 이벤트는 한 번만 반영
+-- Part 2, received callbacks: eventId is the primary key, so the same event is applied only once
 CREATE TABLE callback_events (
-    event_id    VARCHAR(64) NOT NULL,                               -- 파트너가 보낸 이벤트 ID
-    partner_ref VARCHAR(64) NOT NULL,                               -- 대상 파트너 참조값
-    status      VARCHAR(16) NOT NULL,                               -- 콜백이 알린 상태
-    received_at TIMESTAMP   NOT NULL,                               -- 수신 시각
+    event_id    VARCHAR(64) NOT NULL,                               -- event ID sent by the partner
+    partner_ref VARCHAR(64) NOT NULL,                               -- target partner reference
+    status      VARCHAR(16) NOT NULL,                               -- status reported by the callback
+    received_at TIMESTAMP   NOT NULL,                               -- received time
 
-    CONSTRAINT pk_callback_events PRIMARY KEY (event_id),                                    -- 이벤트 중복 차단
-    CONSTRAINT fk_callback_events_partner_ref FOREIGN KEY (partner_ref) REFERENCES transfers (partner_ref), -- 없는 참조값 차단
-    CONSTRAINT ck_callback_events_status CHECK (status = 'COMPLETED')                        -- 콜백은 COMPLETED만
+    CONSTRAINT pk_callback_events PRIMARY KEY (event_id),                                    -- blocks duplicate events
+    CONSTRAINT fk_callback_events_partner_ref FOREIGN KEY (partner_ref) REFERENCES transfers (partner_ref), -- blocks unknown references
+    CONSTRAINT ck_callback_events_status CHECK (status = 'COMPLETED')                        -- callbacks may only report COMPLETED
 );

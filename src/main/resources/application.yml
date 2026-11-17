@@ -1,12 +1,12 @@
 spring:
   application:
-    name: remittance  # 애플리케이션 이름
+    name: remittance  # application name
   datasource:
-    url: "jdbc:h2:mem:remittance;DB_CLOSE_DELAY=-1"  # 메모리 H2 데이터베이스 주소
+    url: "jdbc:h2:mem:remittance;DB_CLOSE_DELAY=-1"  # in-memory H2 database URL
   sql:
     init:
-      mode: always  # 시작할 때 SQL 초기화 항상 실행
-      schema-locations: classpath:schema.sql  # 스키마 SQL 파일 위치
+      mode: always  # always run SQL init at startup
+      schema-locations: classpath:schema.sql  # location of the schema SQL file
   h2:
     console:
-      enabled: false  # H2 웹 콘솔 끔
+      enabled: false  # H2 web console off

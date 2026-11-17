@@ -1,16 +1,16 @@
 package com.finshot.remittance.error;
 
-/** 응답 코드를 품은 업무 예외의 공통 부모. 하위 4개가 에러 코드별 타입. */
+/** Common parent of business exceptions that carry an error code. The 4 subclasses are the types per error code. */
 public abstract class ApiException extends RuntimeException {
 
-	private final ErrorCode code; // 이 예외가 나타내는 에러 코드
+	private final ErrorCode code; // error code this exception stands for
 
 	protected ApiException(ErrorCode code, String message) {
-		super(message); // 사람이 읽는 메시지
-		this.code = code; // 코드 보관
+		super(message);
+		this.code = code;
 	}
 
 	public ErrorCode code() {
-		return code; // 코드 반환
+		return code;
 	}
 }

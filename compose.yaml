@@ -6,24 +6,24 @@ services:
 
   test:
     image: docker.io/library/eclipse-temurin:17.0.20_8-jdk
-    profiles: [tools]  # up에서는 제외, run으로만 실행
+    profiles: [tools]  # skipped by up, run it with run only
     working_dir: /work
     volumes:
-      - .:/work:z  # z는 SELinux 호스트(Fedora 등)에서 접근 허용
-      - m2:/root/.m2  # 의존성 캐시 유지
+      - .:/work:z  # z allows access on SELinux hosts (Fedora etc.)
+      - m2:/root/.m2  # keep the dependency cache
     command: ./mvnw -B test
 
   scenarios:
     image: docker.io/library/alpine:3.22
-    profiles: [tools]  # up에서는 제외, run으로만 실행
+    profiles: [tools]  # skipped by up, run it with run only
     depends_on: [app]
     working_dir: /work
     volumes:
-      - ./scripts:/work/scripts:ro,z  # 스크립트만 읽기 전용 (z는 SELinux용)
+      - ./scripts:/work/scripts:ro,z  # scripts only, read-only (z is for SELinux)
     environment:
-      BASE: http://app:8080  # 컨테이너 안에서 app 서비스 이름으로 접속
-      SCRIPT: scenarios.sh  # 실행할 스크립트. Part 2는 run -e SCRIPT=scenarios-part2.sh
-    # 앱이 응답할 때까지 최대 60초 재시도 후 시나리오 실행
+      BASE: http://app:8080  # reach the app by its service name inside the container
+      SCRIPT: scenarios.sh  # script to run. For Part 2: run -e SCRIPT=scenarios-part2.sh
+    # retry for up to 60 seconds until the app responds, then run the scenarios
     command:
       - sh
       - -c

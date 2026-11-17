@@ -42,7 +42,7 @@
 	</dependencies>
 	<build>
 		<resources>
-			<!-- 루트의 schema.sql을 classpath로 복사: 단일 원본 유지, 실행 위치와 무관 -->
+			<!-- copy root schema.sql to the classpath: one source file, works from any directory -->
 			<resource>
 				<directory>src/main/resources</directory>
 			</resource>

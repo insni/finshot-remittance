@@ -15,59 +15,59 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-/** 시나리오 테스트 공통 기반: 실제 HTTP로 앱을 호출한다 (모든 시나리오가 같은 컨텍스트를 공유). */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) // 랜덤 포트라 Docker 8080과 충돌 없음
+/** Common base for scenario tests: calls the app over real HTTP (all scenarios share one context). */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) // random port, so no clash with Docker on 8080
 abstract class ScenarioTest {
 
 	@Autowired
-	TestRestTemplate rest; // 4xx도 예외 없이 응답으로 받는 HTTP 클라이언트
+	TestRestTemplate rest; // HTTP client that returns 4xx as a normal response, not an exception
 
 	@Autowired
-	JdbcTemplate jdbc; // DB 행 수·합계 확인용
+	JdbcTemplate jdbc; // for checking DB row counts and totals
 
 	static String newKey() {
-		return UUID.randomUUID().toString(); // 시험마다 새 멱등성 키
+		return UUID.randomUUID().toString(); // a new idempotency key for each test
 	}
 
 	ResponseEntity<JsonNode> create(String customerId, String sendAmount, String key) {
-		var headers = new HttpHeaders(); // 요청 헤더
-		headers.set("Idempotency-Key", key); // 재시도 신호
-		var body = Map.of("customerId", customerId, "sendCurrency", "KRW", "sendAmount", sendAmount, // 요청 본문
+		var headers = new HttpHeaders(); // request headers
+		headers.set("Idempotency-Key", key); // retry signal
+		var body = Map.of("customerId", customerId, "sendCurrency", "KRW", "sendAmount", sendAmount, // request body
 				"receiveCurrency", "PHP", "recipientName", "Juan Dela Cruz");
-		return rest.postForEntity("/api/transfers", new HttpEntity<>(body, headers), JsonNode.class); // 생성 호출
+		return rest.postForEntity("/api/transfers", new HttpEntity<>(body, headers), JsonNode.class); // create call
 	}
 
 	ResponseEntity<JsonNode> get(String id) {
-		return rest.getForEntity("/api/transfers/" + id, JsonNode.class); // 조회
+		return rest.getForEntity("/api/transfers/" + id, JsonNode.class); // fetch
 	}
 
 	ResponseEntity<JsonNode> cancel(String id) {
-		return rest.postForEntity("/api/transfers/" + id + "/cancel", null, JsonNode.class); // 취소
+		return rest.postForEntity("/api/transfers/" + id + "/cancel", null, JsonNode.class); // cancel
 	}
 
 	ResponseEntity<JsonNode> send(String id) {
-		return rest.postForEntity("/api/transfers/" + id + "/send", null, JsonNode.class); // 파트너 전송 (동기)
+		return rest.postForEntity("/api/transfers/" + id + "/send", null, JsonNode.class); // send to the partner (synchronous)
 	}
 
 	ResponseEntity<JsonNode> callback(String partnerRef, String eventId) {
-		var body = Map.of("partnerRef", partnerRef, "eventId", eventId, "status", "COMPLETED"); // 완료 콜백
-		return rest.postForEntity("/api/callbacks/partner", body, JsonNode.class); // 콜백 호출
+		var body = Map.of("partnerRef", partnerRef, "eventId", eventId, "status", "COMPLETED"); // completed callback
+		return rest.postForEntity("/api/callbacks/partner", body, JsonNode.class); // callback call
 	}
 
 	int rows(String customerId, String key) {
 		return jdbc.queryForObject("SELECT COUNT(*) FROM transfers WHERE customer_id = ? AND idempotency_key = ?",
-				Integer.class, customerId, key); // 그 고객·키의 송금 행 수
+				Integer.class, customerId, key); // number of transfer rows for that customer and key
 	}
 
-	/** 새 송금을 만들어 /send 를 반복하다가, 응답 상태가 wantedStatus 인 첫 응답 body 를 돌려준다. */
+	/** Creates a new transfer and calls /send, repeating until the response status equals wantedStatus. Returns that first matching response body. */
 	JsonNode sendUntil(String wantedStatus, int maxTries) {
-		for (int i = 0; i < maxTries; i++) { // 파트너 성패는 partnerRef 해시로 정해져 고를 수 없어 반복
-			String id = create("C001", "10000", newKey()).getBody().get("transferId").asText(); // 새 송금
-			JsonNode sent = send(id).getBody(); // 전송 시도
+		for (int i = 0; i < maxTries; i++) { // the partner result depends on the partnerRef hash and cannot be chosen, so repeat
+			String id = create("C001", "10000", newKey()).getBody().get("transferId").asText(); // new transfer
+			JsonNode sent = send(id).getBody(); // try to send
 			if (wantedStatus.equals(sent.path("status").asText())) {
-				return sent; // 원하는 상태를 만났다
+				return sent; // found the wanted status
 			}
 		}
-		return fail(wantedStatus + " 상태를 " + maxTries + "번 안에 만나지 못함"); // 확률상 거의 없는 경우
+		return fail("did not see status " + wantedStatus + " within " + maxTries + " tries"); // very unlikely
 	}
 }

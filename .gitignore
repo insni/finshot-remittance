@@ -35,3 +35,6 @@ build/
 ### misc ###
 *.log
 .DS_Store
+
+### Claude local memory ###
+.claude-local-memory.md

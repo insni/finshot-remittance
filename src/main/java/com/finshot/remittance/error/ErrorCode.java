@@ -2,21 +2,21 @@ package com.finshot.remittance.error;
 
 import org.springframework.http.HttpStatus;
 
-/** 에러 코드와 HTTP 상태의 짝. 과제 정의: VALIDATION_ERROR/NOT_FOUND/CONFLICT/LIMIT_EXCEEDED (INTERNAL_ERROR는 예상 밖 오류용 추가). */
+/** Pairs an error code with an HTTP status. Defined by the assignment: VALIDATION_ERROR/NOT_FOUND/CONFLICT/LIMIT_EXCEEDED (INTERNAL_ERROR is added for unexpected errors). */
 public enum ErrorCode {
-	VALIDATION_ERROR(HttpStatus.BAD_REQUEST), // 400 검증 실패
-	NOT_FOUND(HttpStatus.NOT_FOUND), // 404 대상 없음
-	CONFLICT(HttpStatus.CONFLICT), // 409 상태·멱등성 충돌
-	LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_ENTITY), // 422 일일 한도 초과 (Part 2)
-	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR); // 500 예상 밖 오류
+	VALIDATION_ERROR(HttpStatus.BAD_REQUEST), // 400 validation failed
+	NOT_FOUND(HttpStatus.NOT_FOUND), // 404 not found
+	CONFLICT(HttpStatus.CONFLICT), // 409 status or idempotency conflict
+	LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_ENTITY), // 422 daily limit exceeded (Part 2)
+	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR); // 500 unexpected error
 
-	private final HttpStatus status; // 대응하는 HTTP 상태
+	private final HttpStatus status; // matching HTTP status
 
 	ErrorCode(HttpStatus status) {
-		this.status = status; // 상태 보관
+		this.status = status;
 	}
 
 	public HttpStatus status() {
-		return status; // 상태 반환
+		return status;
 	}
 }

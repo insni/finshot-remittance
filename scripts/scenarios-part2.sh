@@ -1,55 +1,61 @@
 #!/usr/bin/env bash
-# S7~S9 시나리오 실행 스크립트 (Part 2). 새로 띄운 앱(localhost:8080)에 대해 순서대로 실행한다.
-# 사용: java -jar target/remittance-0.0.1-SNAPSHOT.jar & ./scripts/scenarios-part2.sh
-# 키에는 실행마다 다른 RUN 접두어가 붙어 같은 앱에 다시 돌려도 키가 겹치지 않는다. 단 C002의 일일 한도는 앱이 떠 있는 동안 남으므로 S7은 새 앱에서 본다.
+# Runs scenarios S7 to S9 (Part 2) in order against a freshly started app (localhost:8080).
+# Usage: terminal 1: ./mvnw spring-boot:run, terminal 2: ./scripts/scenarios-part2.sh
+# Keys get a different RUN prefix on every run, so re-running against the same app does not reuse keys. C002's daily limit stays used while the app is up, so check S7 on a fresh app.
 BASE="${BASE:-http://localhost:8080}"
+up=; for _ in $(seq 60); do curl -s -o /dev/null "$BASE/" && up=1 && break; sleep 1; done  # poll every 1 second, up to 60 times, until the server is up
+[[ -n "$up" ]] || { echo "no response from server: $BASE" >&2; exit 1; }  # stop if it never comes up
 RUN="${RUN:-$(date +%s)}"
 MAX_TRIES=50
 
-# call <제목> <METHOD> <경로> [Idempotency-Key] [body]  : scenarios.sh의 call과 같은 출력 형식 (Part 1 출력을 그대로 두려고 복사)
+# call <title> <METHOD> <path> [Idempotency-Key] [body]  : same output format as call in scenarios.sh
 call() {
   local title="$1" method="$2" path="$3" key="${4:-}" body="${5:-}"
-  local args=(-s -X "$method" "$BASE$path" -w '\n%{http_code}')
+  local args=(-s -X "$method" "$BASE$path" -w '\n%{http_code}')  # actual curl arguments (-w to read the status code)
+  local show=("curl -i -X $method $BASE$path")  # curl command to print, one entry per line
+  if [[ -n "$body" ]]; then args+=(-H 'Content-Type: application/json'); show+=("-H 'Content-Type: application/json'"); fi  # JSON header if there is a body
+  if [[ -n "$key" ]]; then args+=(-H "Idempotency-Key: $key"); show+=("-H 'Idempotency-Key: $key'"); fi  # idempotency header if there is a key
+  if [[ -n "$body" ]]; then args+=(-d "$body"); show+=("-d '$body'"); fi  # -d if there is a body
   echo "### $title"
   echo "Request:"
   echo '```'
-  echo "$method $path"
-  if [[ -n "$body" ]]; then args+=(-H 'Content-Type: application/json' -d "$body"); echo "Content-Type: application/json"; fi
-  if [[ -n "$key" ]]; then args+=(-H "Idempotency-Key: $key"); echo "Idempotency-Key: $key"; fi
-  [[ -n "$body" ]] && echo "$body"
+  printf '%s' "${show[0]}"  # first line
+  for line in "${show[@]:1}"; do printf ' \\\n  %s' "$line"; done  # continuation lines: join with ` \` and indent two spaces
+  echo
   echo '```'
-  local out; out="$(curl "${args[@]}")"
-  LAST_BODY="${out%$'\n'*}"
-  echo "Response: ${out##*$'\n'}"
-  echo '```'
+  local out; out="$(curl "${args[@]}")"  # run: body, then the status code on the last line
+  LAST_BODY="${out%$'\n'*}"  # everything before the status code is the response body
+  echo "Status: ${out##*$'\n'}"  # the last line is the status code
+  echo "Response:"
+  echo '```json'
   echo "$LAST_BODY"
   echo '```'
   echo
 }
 
-# 요청 body 만들기: body <고객> <금액>
+# build the request body: body <customer> <amount>
 body() {
   echo "{\"customerId\":\"$1\",\"sendCurrency\":\"KRW\",\"sendAmount\":\"$2\",\"receiveCurrency\":\"PHP\",\"recipientName\":\"Juan Dela Cruz\"}"
 }
 
-# 응답 body(LAST_BODY)에서 문자열 필드 꺼내기: field <이름>
+# extract a string field from the response body (LAST_BODY): field <name>
 field() {
   echo "$LAST_BODY" | sed -n "s/.*\"$1\":\"\([^\"]*\)\".*/\1/p"
 }
 
-# 새 송금을 만들고 /send 까지 한다: create_and_send <제목접두어> <고객> <키> -> ID, LAST_BODY(send 응답)
+# create a new transfer and call /send: create_and_send <title prefix> <customer> <key> -> ID, LAST_BODY (send response)
 create_and_send() {
   call "$1 create" POST /api/transfers "$3" "$(body "$2" 100000)"
   ID="$(field transferId)"
   call "$1 send" POST "/api/transfers/$ID/send"
 }
 
-# S7: C002로 한도(3,000,000)까지 채우고 넘기기. 100만 x 3은 통과(합계가 한도와 같은 것까지 허용), 4번째는 422
+# S7: fill C002 up to the limit (3,000,000) and go over. 3 x 1,000,000 pass (a total equal to the limit is allowed), the 4th gets 422
 for i in 1 2 3 4; do
   call "S7-$i C002 create 1000000" POST /api/transfers "s7-$RUN-$i" "$(body C002 1000000)"
 done
 
-# S8: 파트너가 접수한 송금(SENDING)을 찾을 때까지 시도 -> 같은 콜백(같은 eventId) 두 번 -> 최종 조회
+# S8: try until the partner accepts a transfer (SENDING) -> send the same callback (same eventId) twice -> fetch the final state
 for n in $(seq $MAX_TRIES); do
   create_and_send "S8 try $n" C001 "s8-$RUN-$n"
   [[ "$(field status)" == "SENDING" ]] && break
@@ -61,7 +67,7 @@ call "S8a callback, first delivery" POST /api/callbacks/partner "" "$CALLBACK"
 call "S8b same callback again (same eventId)" POST /api/callbacks/partner "" "$CALLBACK"
 call "S8c final state" GET "/api/transfers/$ID"
 
-# S9: 3회 모두 실패해 FAILED가 될 때까지 시도. 시도 기록(attempts)은 send 응답에 들어 있다
+# S9: try until all 3 attempts fail and the transfer becomes FAILED. The attempt records (attempts) are in the send response
 for n in $(seq $MAX_TRIES); do
   create_and_send "S9 try $n" C003 "s9-$RUN-$n"
   [[ "$(field status)" == "FAILED" ]] && break

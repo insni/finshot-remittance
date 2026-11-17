@@ -15,38 +15,38 @@ import com.finshot.remittance.dto.TransferResponse;
 import com.finshot.remittance.service.PartnerDispatchService;
 import com.finshot.remittance.service.TransferService;
 
-/** HTTP 입출력만 담당. 판단은 서비스, 오류 변환은 GlobalExceptionHandler. */
+/** Handles HTTP input/output only. Decisions are in the service, error mapping in GlobalExceptionHandler. */
 @RestController
 @RequestMapping("/api/transfers")
 public class TransferController {
 
-	private final TransferService service; // 업무 흐름 담당
-	private final PartnerDispatchService dispatch; // 파트너 전송 담당
+	private final TransferService service; // business flow
+	private final PartnerDispatchService dispatch; // partner dispatch
 
 	TransferController(TransferService service, PartnerDispatchService dispatch) {
-		this.service = service; // 주입값 보관
-		this.dispatch = dispatch; // 주입값 보관
+		this.service = service;
+		this.dispatch = dispatch;
 	}
 
 	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED) // 재시도(같은 키·같은 내용)도 201
-	TransferResponse create(@RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey, // 없으면 null로 받아 검증기가 400 처리
+	@ResponseStatus(HttpStatus.CREATED) // a retry (same key, same content) is also 201
+	TransferResponse create(@RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey, // missing header arrives as null; the validator turns it into 400
 			@RequestBody CreateTransferRequest request) {
-		return TransferResponse.from(service.create(idempotencyKey, request)); // 생성(또는 재생) 결과
+		return TransferResponse.from(service.create(idempotencyKey, request)); // created (or replayed) transfer
 	}
 
 	@GetMapping("/{transferId}")
 	TransferResponse get(@PathVariable String transferId) {
-		return TransferResponse.from(service.get(transferId)); // 단건 조회
+		return TransferResponse.from(service.get(transferId));
 	}
 
 	@PostMapping("/{transferId}/cancel")
 	TransferResponse cancel(@PathVariable String transferId) {
-		return TransferResponse.from(service.cancel(transferId)); // 취소 후 갱신본
+		return TransferResponse.from(service.cancel(transferId)); // updated transfer after cancel
 	}
 
 	@PostMapping("/{transferId}/send")
 	TransferResponse send(@PathVariable String transferId) {
-		return dispatch.send(transferId); // 동기 실행: 접수면 SENDING, 3회 실패면 FAILED (시도 기록 포함)
+		return dispatch.send(transferId); // runs synchronously: SENDING if accepted, FAILED after 3 failures (attempts included)
 	}
 }
